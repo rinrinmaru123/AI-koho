@@ -1,1 +1,1 @@
-# haguruma-sns
+# AI-koho（AI広報の作業場：Haguruma・Halulu）
