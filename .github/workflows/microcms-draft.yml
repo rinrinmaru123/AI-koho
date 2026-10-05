@@ -3,7 +3,7 @@ name: microCMSに下書きを送る
 on:
   push:
     branches: [main]
-    paths: ["blog-queue/**.json"]
+    paths: ["blog-queue/**.json", "blog-queue/**.png"]
   workflow_dispatch:
 
 permissions:
