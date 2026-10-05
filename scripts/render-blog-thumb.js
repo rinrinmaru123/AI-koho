@@ -1,25 +1,25 @@
 // Halulu ブログのサムネイル（1200x630）を作る: node scripts/render-blog-thumb.js "タイトル" "カテゴリ" out.png
-// タイトルは \n で改行できる。キャラクター画像は assets/halulu-chara.png。
+// 4つ目にキャラクター名（assets/chara の名前）を渡すとそれを使う。省略するとタイトルから自動で選ぶ。
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require(process.env.PW_PATH || "playwright");
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const CHARA = "data:image/png;base64," + fs.readFileSync(path.join(__dirname, "..", "assets", "halulu-chara.png")).toString("base64");
+const CH = require("./chara");
 
-function html(title, cat) {
+function html(title, cat, chara) {
   const t = esc(title).replace(/\\n|\n/g, "<br>");
   // 一番長い行が幅（約590px）に収まる文字サイズにする（半角は0.6文字分で数える）
   const w = l => [...l].reduce((n, c) => n + (/[\x20-\x7e]/.test(c) ? 0.6 : 1), 0);
   const longest = Math.max(...String(title).split(/\\n|\n/).map(w));
-  const size = Math.max(36, Math.min(68, Math.floor(590 / longest)));
+  const size = Math.max(36, Math.min(68, Math.floor(560 / longest)));
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1200px;height:630px;background:linear-gradient(120deg,#FFF9F6 0%,#FDEEF1 60%,#FBE3E8 100%);color:#3A2E2E;font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;position:relative;overflow:hidden}
 .halo{position:absolute;width:640px;height:640px;border-radius:50%;right:-110px;top:-10px;background:radial-gradient(circle,#FFFFFF 0%,#FFF3F5 45%,rgba(255,243,245,0) 70%)}
 .dot{position:absolute;border-radius:50%;background:#F7CBD4;opacity:.55}
 .leaf{position:absolute;width:90px;height:44px;border-radius:0 100% 0 100%;background:#B9D8BF;opacity:.7}
-.chara{position:absolute;right:20px;bottom:-14px;height:560px}
+.chara{position:absolute;right:20px;bottom:-14px;height:560px;max-width:470px;object-fit:contain;object-position:right bottom}
 .wrap{position:absolute;left:0;top:0;bottom:0;width:690px;padding:64px 0 56px 80px;display:flex;flex-direction:column}
 .brand{font-family:"Noto Serif CJK JP",serif;font-size:34px;font-weight:700;color:#D9708A;letter-spacing:.04em}
 .brand small{font-family:"Noto Sans CJK JP",sans-serif;font-size:20px;letter-spacing:.24em;color:#9C8A8C;font-weight:500;margin-left:12px}
@@ -33,7 +33,7 @@ body{width:1200px;height:630px;background:linear-gradient(120deg,#FFF9F6 0%,#FDE
 <div class="dot" style="width:14px;height:14px;left:660px;top:120px"></div>
 <div class="dot" style="width:18px;height:18px;left:560px;bottom:70px"></div>
 <div class="leaf" style="left:-20px;bottom:30px;transform:rotate(-20deg)"></div>
-<img class="chara" src="${CHARA}">
+<img class="chara" src="${CH.dataUri(CH.pick("thumb", title, 0, chara))}">
 <div class="wrap"><div class="brand">Halulu<small>渋谷歯科</small></div>
 ${cat ? `<div class="cat">${esc(cat)}</div>` : `<div style="margin-top:auto"></div>`}
 <div class="title">${t}</div><div class="line"></div>
@@ -41,11 +41,11 @@ ${cat ? `<div class="cat">${esc(cat)}</div>` : `<div style="margin-top:auto"></d
 }
 
 (async () => {
-  const [, , title, cat, out] = process.argv;
+  const [, , title, cat, out, chara] = process.argv;
   fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
   const p = await b.newPage({ viewport: { width: 1200, height: 630 } });
-  await p.setContent(html(title, cat), { waitUntil: "load" });
+  await p.setContent(html(title, cat, chara), { waitUntil: "load" });
   await p.evaluate(() => document.fonts.ready);
   await p.screenshot({ path: out, type: "png" });
   await b.close();

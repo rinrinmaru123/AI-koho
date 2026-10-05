@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { chromium } = require(process.env.PW_PATH || "playwright");
 
-const CHARA = "data:image/png;base64," + fs.readFileSync(path.join(__dirname, "..", "assets", "halulu-chara.png")).toString("base64");
+const CH = require("./chara");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const br = s => esc(s).replace(/\n/g, "<br>");
 const rich = s => esc(s).replace(/\n/g, "<br>").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
@@ -54,27 +54,27 @@ body{width:1080px;height:1350px;background:linear-gradient(160deg,#FFF9F6 0%,#FD
 const HANDLE = "@halulu.shibuya.dental";
 const BRAND = `<div class="brand serif">Halulu<small>渋谷歯科</small></div>`;
 
-function slideHTML(s, i, n) {
+function slideHTML(s, i, n, seed) {
   const page = `<span class="page">${i + 1}/${n}</span>`;
   let inner = "", deco = "";
   if (s.type === "cover") {
-    deco = `<div class="disc d2"></div><div class="halo" style="width:760px;height:760px;right:-240px;bottom:-60px"></div><img class="chara big" src="${CHARA}">`;
+    deco = `<div class="disc d2"></div><div class="halo" style="width:760px;height:760px;right:-240px;bottom:-60px"></div><img class="chara big" src="${CH.dataUri(CH.pick("cover", seed, 0, s.chara))}">`;
     inner = `<div class="wrap cover">${BRAND}<div class="title serif">${br(s.title)}</div><div class="bar"></div>
       ${s.lead ? `<div class="lead">${br(s.lead)}</div>` : ""}<div class="foot"><span>スワイプして読む →</span>${page}</div></div>`;
   } else if (s.type === "end") {
-    deco = `<div class="disc d2"></div><div class="halo" style="width:720px;height:720px;right:-260px;top:20px"></div><img class="chara end" src="${CHARA}">`;
+    deco = `<div class="disc d2"></div><div class="halo" style="width:720px;height:720px;right:-260px;top:20px"></div><img class="chara end" src="${CH.dataUri(CH.pick("end", seed, 0, s.chara))}">`;
     inner = `<div class="wrap end">${BRAND}<div class="msg serif">${br(s.message || "歯を、\n育てよう。")}</div>
       <div class="tag">抜く・削る前に、育てる。<br>2度と笑顔を失わせないために。</div>
       <div class="cta">ご予約はプロフィールから</div>
       <div class="note">Halulu渋谷歯科｜渋谷駅近く・完全自費診療</div>
       <div class="foot"><span>${HANDLE}</span>${page}</div></div>`;
   } else if (s.type === "info") {
-    deco = `<div class="halo" style="width:420px;height:420px;right:-60px;top:-80px"></div><img class="chara mini" src="${CHARA}">`;
+    deco = `<div class="halo" style="width:420px;height:420px;right:-60px;top:-80px"></div><img class="chara mini" src="${CH.dataUri(CH.pick("mini", seed, i, s.chara))}">`;
     inner = `<div class="wrap info">${BRAND}<div class="label">${esc(s.label || "費用・回数・リスク")}</div>
       <div class="heading serif">${br(s.heading)}</div><div class="body">${rich(s.body)}</div>
       <div class="foot"><span>${HANDLE}</span>${page}</div></div>`;
   } else {
-    deco = `<div class="halo" style="width:420px;height:420px;right:-60px;top:-80px"></div><img class="chara mini" src="${CHARA}">`;
+    deco = `<div class="halo" style="width:420px;height:420px;right:-60px;top:-80px"></div><img class="chara mini" src="${CH.dataUri(CH.pick("mini", seed, i, s.chara))}">`;
     inner = `<div class="wrap point">${BRAND}<div class="no serif">${String(s.no || i).padStart(2, "0")}</div>
       <div class="heading serif">${br(s.heading)}</div><div class="body">${rich(s.body)}</div>
       <div class="foot"><span>${HANDLE}</span>${page}</div></div>`;
@@ -90,7 +90,7 @@ function slideHTML(s, i, n) {
   const p = await b.newPage({ viewport: { width: 1080, height: 1350 } });
   const out = [];
   for (let i = 0; i < slides.length; i++) {
-    await p.setContent(slideHTML(slides[i], i, slides.length), { waitUntil: "load" });
+    await p.setContent(slideHTML(slides[i], i, slides.length, (slides[0] && slides[0].title) || inFile), { waitUntil: "load" });
     await p.evaluate(() => document.fonts.ready);
     const f = path.join(outDir, `slide-${String(i + 1).padStart(2, "0")}.png`);
     await p.screenshot({ path: f, type: "png" });
