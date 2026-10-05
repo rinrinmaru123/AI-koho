@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "status": 400,
+  "error": "{\"message\":\"'thumbnail' field required error.\"}",
+  "at": "2026-10-05T09:51:33.910Z"
+}
