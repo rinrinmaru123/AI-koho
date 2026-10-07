@@ -26,7 +26,7 @@ jobs:
           WP_URL: https://haisyanooisya.com
           WP_USER: ${{ secrets.WP_USER }}
           WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
-          WP_DEFAULT_STATUS: draft
+          WP_DEFAULT_STATUS: publish
         run: node scripts/post-wordpress.js
       - name: 結果を保存
         run: |
