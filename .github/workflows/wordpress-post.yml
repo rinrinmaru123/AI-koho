@@ -1,0 +1,40 @@
+name: Hagurumaのブログを投稿する
+
+on:
+  push:
+    branches: [main]
+    paths: ["wp-queue/**.json", "wp-queue/**.png"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wordpress-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: WordPressに投稿
+        env:
+          WP_URL: https://haisyanooisya.com
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          WP_DEFAULT_STATUS: draft
+        run: node scripts/post-wordpress.js
+      - name: 結果を保存
+        run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add wp-queue wp-results
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "WordPressへの投稿結果を記録
+
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+          git push
