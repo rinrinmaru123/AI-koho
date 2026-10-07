@@ -1,7 +1,7 @@
 // ブログ本文の途中に入れる「章の画像」（1200x675）を作る: node scripts/render-section.js spec.json
 // spec.json は配列: [{ "brand":"halulu"|"haguruma", "out":"blog-queue/<id>-img1.png",
 //   "label":"POINT 1", "heading":"見出し（\nで2行まで・1行14字前後）",
-//   "points":["要点（20字以内）", …最大3つ], "chara":"（Haluluのみ・省略可）" }]
+//   "points":["要点（20字以内）", …最大3つ], "chara":"（省略可。Haluluは表情名、Hagurumaは front/side/hero）" }]
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require(process.env.PW_PATH || "playwright");
@@ -47,33 +47,27 @@ ${pts.length ? `<ul>${pts.map(p => `<li><span>${esc(p)}</span></li>`).join("")}<
 <div class="brand">Halulu渋谷歯科</div></body></html>`;
 }
 
-const GEAR = (size, color, holeColor) => {
-  const teeth = 12, r1 = 0.36, r2 = 0.46, hole = 0.15;
-  let d = "";
-  for (let i = 0; i < teeth; i++) {
-    const a = (i / teeth) * Math.PI * 2, w = Math.PI / teeth * 0.55;
-    [[a - w * 1.25, r1], [a - w * 0.75, r2], [a + w * 0.75, r2], [a + w * 1.25, r1]].forEach(([ang, r], j) => {
-      d += (i === 0 && j === 0 ? "M" : "L") + (0.5 + Math.cos(ang) * r).toFixed(4) + " " + (0.5 + Math.sin(ang) * r).toFixed(4) + " ";
-    });
-  }
-  return `<svg width="${size}" height="${size}" viewBox="0 0 1 1"><path d="${d}Z" fill="${color}"/><circle cx=".5" cy=".5" r="${r1 - 0.01}" fill="${color}"/><circle cx=".5" cy=".5" r="${hole}" fill="${holeColor}"/></svg>`;
-};
-
-function haguruma(s) {
+const HG = require("./haguru");
+function haguruma(s, idx) {
   const pts = (s.points || []).slice(0, 3);
-  const pSize = fit(pts.join("\n"), 700, 24, 32);
+  const pSize = fit(pts.join("\n"), 600, 24, 31);
+  const chara = HG.pick("section", idx, s.chara);
   return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE}
-body{background:#F2F5F9;color:#15263F}
-.g1{position:absolute;right:-120px;top:-110px}.g2{position:absolute;right:110px;bottom:170px}.g3{position:absolute;right:-60px;bottom:-140px}
-.wrap{position:absolute;left:80px;top:40px;bottom:80px;width:820px;display:flex;flex-direction:column;justify-content:center}
-.label{align-self:flex-start;font-size:22px;font-weight:700;color:#fff;background:#2F6DB5;padding:7px 22px;border-radius:6px;letter-spacing:.14em}
-.heading{margin-top:22px;font-weight:900;font-size:${fit(s.heading, 800, 40, 60)}px}
-.bar{margin-top:22px;width:100px;height:8px;border-radius:4px;background:#E9A23B}
-li{font-size:${pSize}px;background:#fff;border-radius:12px;padding:14px 22px;box-shadow:0 2px 0 #DCE6F2}
-li b{flex:none;width:36px;height:36px;border-radius:50%;background:#15263F;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;margin-top:${(pSize * 1.45 - 36) / 2}px}
-.brand{position:absolute;left:80px;bottom:26px;font-size:18px;font-weight:700;color:#7C8CA3;letter-spacing:.14em}
+body{background:linear-gradient(115deg,#FFFFFF 0%,#F2F9F4 60%,#E2F3E8 100%);color:#16382A}
+.halo{position:absolute;width:560px;height:560px;border-radius:50%;right:-110px;top:40px;background:radial-gradient(circle,#FFFFFF 0%,#EEF8F1 50%,rgba(238,248,241,0) 72%)}
+.dot{position:absolute;border-radius:50%;background:#74D19F;opacity:.35}
+.chara{position:absolute;right:36px;bottom:20px;height:400px;max-width:330px;object-fit:contain;object-position:right bottom;filter:drop-shadow(0 14px 16px rgba(30,90,55,.18))}
+.wrap{position:absolute;left:72px;top:40px;bottom:80px;width:760px;display:flex;flex-direction:column;justify-content:center}
+.label{align-self:flex-start;font-size:22px;font-weight:700;color:#fff;background:#22994F;padding:7px 22px;border-radius:999px;letter-spacing:.14em}
+.heading{margin-top:22px;font-weight:900;font-size:${fit(s.heading, 740, 38, 58)}px}
+.bar{margin-top:22px;width:100px;height:8px;border-radius:4px;background:#74D19F}
+li{font-size:${pSize}px;background:#fff;border-radius:14px;padding:14px 22px;box-shadow:0 2px 0 #D6EBDD}
+li b{flex:none;width:36px;height:36px;border-radius:50%;background:#22994F;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;margin-top:${(pSize * 1.45 - 36) / 2}px}
+.brand{position:absolute;left:72px;bottom:26px;font-size:18px;font-weight:700;color:#5E8A6F;letter-spacing:.14em}
 </style></head><body>
-<div class="g1">${GEAR(380, "#DCE6F2", "#F2F5F9")}</div><div class="g2">${GEAR(110, "#2F6DB5", "#F2F5F9")}</div><div class="g3">${GEAR(280, "#E4EAF2", "#F2F5F9")}</div>
+<div class="halo"></div>
+<div class="dot" style="width:22px;height:22px;left:880px;top:60px"></div><div class="dot" style="width:12px;height:12px;left:920px;top:100px"></div>
+<img class="chara" src="${HG.dataUri(chara)}">
 <div class="wrap">${s.label ? `<div class="label">${esc(s.label)}</div>` : ""}
 <div class="heading">${br(s.heading)}</div><div class="bar"></div>
 ${pts.length ? `<ul>${pts.map((p, i) => `<li><b>${i + 1}</b><span>${esc(p)}</span></li>`).join("")}</ul>` : ""}</div>
@@ -84,9 +78,10 @@ ${pts.length ? `<ul>${pts.map((p, i) => `<li><b>${i + 1}</b><span>${esc(p)}</spa
   const specs = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
   const p = await b.newPage({ viewport: { width: 1200, height: 675 } });
+  let hi = 0;
   for (const s of specs) {
     fs.mkdirSync(path.dirname(path.resolve(s.out)), { recursive: true });
-    await p.setContent(s.brand === "haguruma" ? haguruma(s) : halulu(s), { waitUntil: "load" });
+    await p.setContent(s.brand === "haguruma" ? haguruma(s, hi++) : halulu(s), { waitUntil: "load" });
     await p.evaluate(() => document.fonts.ready);
     await p.screenshot({ path: s.out, type: "png" });
     console.log(s.out);
