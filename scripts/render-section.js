@@ -111,6 +111,29 @@ ${s.note ? `<div class="note">${esc(s.note)}</div>` : ""}
 </body></html>`;
 }
 
+// 文章の合間に入れる「挿絵」: { "kind":"illust", "brand", "out", "say":"キャラクターのひと言（16字以内・任意）", "mood":"worry なら困り顔／しょんぼり（任意）", "chara":"（任意）" }
+function illust(s, idx) {
+  const hg = s.brand === "haguruma";
+  const seed = path.basename(String(s.out || "")).replace(/-img\w+\.\w+$/, "");
+  const worry = s.mood === "worry";
+  const chara = s.chara || (hg ? (worry ? "komari" : HG.pick("section", seed, idx)) : (worry ? "shonbori" : CH.pick("mini", seed, idx)));
+  const img = hg ? HG.dataUri(chara) : CH.dataUri(chara);
+  const C = hg ? { bg:"radial-gradient(ellipse at 62% 45%,#FFFFFF 0%,#EEF8F1 45%,#DDF0E4 100%)", dot:"#9FDDB8", dot2:"#FFE9A8", ink:"#16382A", line:"#BFE3CB", floor:"rgba(34,153,79,.12)" }
+                : { bg:"radial-gradient(ellipse at 62% 45%,#FFFFFF 0%,#FFF3F5 45%,#FBE3E8 100%)", dot:"#F7CBD4", dot2:"#C9E6CF", ink:"#3A2E2E", line:"#F3C9D3", floor:"rgba(229,139,160,.14)" };
+  const say = String(s.say || "").slice(0, 24);
+  const bubble = say ? `<div class="bubble">${esc(say)}</div>` : "";
+  const dots = [[90,90,60,.5],[180,520,34,.6],[300,140,22,.7],[1040,110,40,.5],[1110,480,26,.6],[220,330,14,.8],[1000,600,18,.7]]
+    .map(([x,y,r,o],i) => `<div class="d" style="left:${x}px;top:${y}px;width:${r}px;height:${r}px;opacity:${o};background:${i%2?C.dot2:C.dot}"></div>`).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE}
+body{background:${C.bg}}
+.d{position:absolute;border-radius:50%}
+.floor{position:absolute;left:50%;bottom:58px;width:520px;height:60px;margin-left:${say ? 40 : -260}px;border-radius:50%;background:${C.floor};filter:blur(6px)}
+.chara{position:absolute;bottom:70px;height:500px;max-width:520px;object-fit:contain;${say ? "right:150px" : "left:50%;transform:translateX(-50%)"};filter:drop-shadow(0 14px 16px rgba(0,0,0,.10))}
+.bubble{position:absolute;left:90px;top:170px;max-width:500px;background:#fff;border:4px solid ${C.line};border-radius:40px;padding:30px 40px;font-size:${fit(say, 420, 32, 44)}px;font-weight:900;color:${C.ink};line-height:1.45;word-break:keep-all;box-shadow:0 6px 0 ${C.line}}
+.bubble::after{content:"";position:absolute;right:-30px;top:60%;border:18px solid transparent;border-left:30px solid #fff;filter:drop-shadow(4px 0 0 ${C.line})}
+</style></head><body>${dots}<div class="floor"></div>${bubble}<img class="chara" src="${img}"></body></html>`;
+}
+
 (async () => {
   const specs = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
@@ -118,7 +141,7 @@ ${s.note ? `<div class="note">${esc(s.note)}</div>` : ""}
   let hi = 0;
   for (const s of specs) {
     fs.mkdirSync(path.dirname(path.resolve(s.out)), { recursive: true });
-    await p.setContent(s.kind === "table" ? table(s) : (s.brand === "haguruma" ? haguruma(s, hi++) : halulu(s)), { waitUntil: "load" });
+    await p.setContent(s.kind === "illust" ? illust(s, hi++) : s.kind === "table" ? table(s) : (s.brand === "haguruma" ? haguruma(s, hi++) : halulu(s)), { waitUntil: "load" });
     await p.evaluate(() => document.fonts.ready);
     await p.screenshot({ path: s.out, type: "png" });
     console.log(s.out);
