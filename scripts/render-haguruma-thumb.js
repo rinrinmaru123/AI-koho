@@ -29,7 +29,7 @@ body{width:1200px;height:630px;background:linear-gradient(115deg,#FFFFFF 0%,#F2F
 <div class="halo"></div>
 <div class="dot" style="width:22px;height:22px;left:700px;top:80px"></div><div class="dot" style="width:12px;height:12px;left:740px;top:125px"></div>
 <div class="leaf" style="left:-14px;bottom:36px;transform:rotate(-22deg)"></div>
-<img class="chara" src="${HG.dataUri(HG.pick("thumb", 0, chara))}">
+<img class="chara" src="${HG.dataUri(HG.pick("thumb", title, 0, chara))}">
 <div class="wrap"><img class="logo" src="${LOGO}">
 <div class="title">${t}</div><div class="bar"></div>
 <div class="foot">審査制・実名制の歯科人材マッチング｜Haguruma</div></div></body></html>`;

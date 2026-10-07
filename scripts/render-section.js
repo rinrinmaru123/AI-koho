@@ -51,7 +51,9 @@ const HG = require("./haguru");
 function haguruma(s, idx) {
   const pts = (s.points || []).slice(0, 3);
   const pSize = fit(pts.join("\n"), 600, 24, 31);
-  const chara = HG.pick("section", idx, s.chara);
+  const text = (s.heading || "") + " " + pts.join(" ");
+  const article = path.basename(String(s.out || "")).replace(/-img\d+\.\w+$/, "");
+  const chara = HG.WORRY.test(text) && !s.chara ? "komari" : HG.pick("section", article, idx, s.chara);
   return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE}
 body{background:linear-gradient(115deg,#FFFFFF 0%,#F2F9F4 60%,#E2F3E8 100%);color:#16382A}
 .halo{position:absolute;width:560px;height:560px;border-radius:50%;right:-110px;top:40px;background:radial-gradient(circle,#FFFFFF 0%,#EEF8F1 50%,rgba(238,248,241,0) 72%)}
