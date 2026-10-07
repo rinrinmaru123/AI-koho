@@ -1,0 +1,38 @@
+name: WordPressの記事を参考用に取得する
+
+on:
+  push:
+    branches: [main]
+    paths: ["wp-fetch/**.txt"]
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 取得
+        env:
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          for f in wp-fetch/*.txt; do
+            slug=$(basename "$f" .txt)
+            curl -sS -u "$WP_USER:$(echo "$WP_APP_PASSWORD" | tr -d ' ')" \
+              "https://haisyanooisya.com/wp-json/wp/v2/posts?slug=${slug}&context=edit&_fields=id,content,featured_media" \
+              -o "wp-fetch/${slug}.json"
+            curl -sS -A "Mozilla/5.0" "https://haisyanooisya.com/blog/${slug}/" -o "wp-fetch/${slug}.page.html" || true
+            rm "$f"
+          done
+      - name: 保存
+        run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add wp-fetch
+          git diff --cached --quiet && exit 0
+          git commit -m "参考記事を取得
+
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+          git push
