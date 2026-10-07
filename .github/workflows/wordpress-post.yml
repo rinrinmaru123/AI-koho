@@ -3,7 +3,7 @@ name: Hagurumaのブログを投稿する
 on:
   push:
     branches: [main]
-    paths: ["wp-queue/**.json", "wp-queue/**.png"]
+    paths: ["wp-queue/**.json", "wp-queue/**.png", "wp-queue/**.jpg"]
   workflow_dispatch:
 
 permissions:

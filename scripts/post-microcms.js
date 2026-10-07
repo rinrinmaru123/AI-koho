@@ -8,11 +8,12 @@ const service = process.env.MICROCMS_SERVICE;
 const endpoint = process.env.MICROCMS_ENDPOINT;
 const queueDir = "blog-queue";
 const resultDir = "blog-results";
+const { inlineImages, contentType } = require("./inline-images");
 // サムネイル：blog-queue/<id>.png があれば microCMS のメディアにアップロードして使う。
 // アップロードできない時は、既存記事のサムネイルを仮で入れて下書きだけは作る（結果に注意書きを残す）。
 async function uploadThumb(file) {
   const fd = new FormData();
-  fd.append("file", new Blob([fs.readFileSync(file)], { type: "image/png" }), path.basename(file));
+  fd.append("file", new Blob([fs.readFileSync(file)], { type: contentType(file) }), path.basename(file));
   const res = await fetch(`https://${service}.microcms-management.io/api/v1/media`, {
     method: "POST", headers: { "X-MICROCMS-API-KEY": key }, body: fd,
   });
@@ -41,11 +42,17 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
     const id = path.basename(f, ".json");
     const src = path.join(queueDir, f);
     let result;
+    let imgNote = null;
     try {
       const raw = JSON.parse(fs.readFileSync(src, "utf8"));
       const content = {};
       for (const k of ALLOWED) if (raw[k] !== undefined && raw[k] !== "") content[k] = raw[k];
       if (typeof content.category === "string") content.category = [content.category];
+      // 本文の途中の画像（{{IMG1}} などの目印を画像に置き換える）
+      const inl = await inlineImages(content.body || "", raw.images, queueDir, uploadThumb,
+        (url, alt) => `<figure><img src="${url}" alt="${alt}"></figure>`);
+      if (content.body) content.body = inl.html;
+      imgNote = inl.notes.length ? inl.notes.join(" / ") : null;
       let thumbNote = null;
       if (!content.thumbnail) {
         const png = path.join(queueDir, `${id}.png`);
@@ -67,7 +74,7 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
       const text = await res.text();
       if (res.ok) {
         const data = JSON.parse(text);
-        result = { ok: true, contentId: data.id, editUrl: `https://${service}.microcms.io/apis/${endpoint}/${data.id}`, thumbnail: content.thumbnail, thumbNote, at: new Date().toISOString() };
+        result = { ok: true, contentId: data.id, editUrl: `https://${service}.microcms.io/apis/${endpoint}/${data.id}`, thumbnail: content.thumbnail, thumbNote: [thumbNote, imgNote].filter(Boolean).join("。") || null, at: new Date().toISOString() };
       } else {
         result = { ok: false, status: res.status, error: text.slice(0, 500), thumbNote, at: new Date().toISOString() };
       }
@@ -76,6 +83,7 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
     }
     fs.writeFileSync(path.join(resultDir, `${id}.json`), JSON.stringify(result, null, 2));
     fs.unlinkSync(src);
+    for (const x of fs.readdirSync(queueDir)) if (x.startsWith(id + "-img") || x === id + ".png") fs.unlinkSync(path.join(queueDir, x));
     console.log(id, result.ok ? "下書きを作成しました" : "失敗しました", result.ok ? result.contentId : result.error);
   }
 })();
