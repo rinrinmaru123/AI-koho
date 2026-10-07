@@ -1,7 +1,8 @@
 // ブログ本文の途中に入れる「章の画像」（1200x675）を作る: node scripts/render-section.js spec.json
 // spec.json は配列: [{ "brand":"halulu"|"haguruma", "out":"blog-queue/<id>-img1.png",
 //   "label":"POINT 1", "heading":"見出し（\nで2行まで・1行14字前後）",
-//   "points":["要点（20字以内）", …最大3つ], "chara":"（省略可。Haluluは表情名、Hagurumaは front/side/hero）" }]
+//   "points":["要点（20字以内）", …最大3つ], "chara":"（省略可。キャラクターの名前）" }]
+// "kind":"table" を付けると図解（表）の画像になる（下の table() を参照）。
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require(process.env.PW_PATH || "playwright");
@@ -76,6 +77,40 @@ ${pts.length ? `<ul>${pts.map((p, i) => `<li><b>${i + 1}</b><span>${esc(p)}</spa
 <div class="brand">HAGURUMA</div></body></html>`;
 }
 
+
+// 図解（表）の画像: { "kind":"table", "brand", "out", "heading":"表のタイトル", "rows":[{ "rank":"1位", "label":"項目（14字以内）", "desc":"説明（30字以内）" }]（3〜5行）, "note":"出典や注記（任意）" }
+function table(s) {
+  const hg = s.brand === "haguruma";
+  const C = hg ? { bg:"linear-gradient(115deg,#FFFFFF 0%,#F2F9F4 60%,#E2F3E8 100%)", ink:"#16382A", main:"#22994F", soft:"#5E8A6F", line:"#D6EBDD", rankBg:"#22994F", band:"#EAF6EE", font:'"Noto Sans CJK JP",sans-serif' }
+                : { bg:"linear-gradient(120deg,#FFF9F6 0%,#FDEEF1 65%,#FBE3E8 100%)", ink:"#3A2E2E", main:"#E58BA0", soft:"#9C8A8C", line:"#F3D9DF", rankBg:"#E58BA0", band:"#FFF4F6", font:'"Noto Serif CJK JP",serif' };
+  const rows = (s.rows || []).slice(0, 5);
+  const n = Math.max(rows.length, 1);
+  const rowH = Math.floor((675 - 190 - 40) / n);
+  const lSize = Math.min(30, fit(rows.map(r => r.label).join("\n"), 330, 20, 30));
+  const dSize = Math.min(24, fit(rows.map(r => r.desc).join("\n"), 640, 16, 24));
+  const chara = hg ? HG.pick("section", s.heading || "", 3, s.chara) : CH.pick("mini", s.heading || "", 0, s.chara);
+  const img = hg ? HG.dataUri(chara) : CH.dataUri(chara);
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE}
+body{background:${C.bg};color:${C.ink}}
+.top{position:absolute;left:60px;top:40px;right:220px;height:110px;display:flex;align-items:center}
+.ttl{font-family:${C.font};font-weight:900;font-size:${fit(s.heading, 880, 30, 46)}px;line-height:1.3;word-break:keep-all}
+.chara{position:absolute;right:40px;top:14px;height:160px;object-fit:contain}
+.tbl{position:absolute;left:60px;right:60px;top:170px;bottom:${s.note ? 58 : 40}px;background:#fff;border-radius:18px;box-shadow:0 3px 0 ${C.line};overflow:hidden;display:flex;flex-direction:column}
+.row{flex:1;display:flex;align-items:center;gap:22px;padding:0 26px;border-top:2px solid ${C.line}}
+.row:first-child{border-top:0}
+.row:nth-child(odd){background:${C.band}}
+.rk{flex:none;min-width:84px;height:${Math.min(52, rowH - 18)}px;border-radius:999px;background:${C.rankBg};color:#fff;font-weight:900;font-size:${Math.min(24, rowH / 3)}px;display:flex;align-items:center;justify-content:center;padding:0 14px}
+.lb{flex:none;width:340px;font-weight:900;font-size:${lSize}px;line-height:1.3;word-break:keep-all}
+.ds{flex:1;font-size:${dSize}px;line-height:1.45;color:${C.soft};word-break:keep-all}
+.note{position:absolute;left:62px;bottom:20px;font-size:16px;color:${C.soft}}
+</style></head><body>
+<img class="chara" src="${img}">
+<div class="top"><div class="ttl">${br(s.heading)}</div></div>
+<div class="tbl">${rows.map(r => `<div class="row"><div class="rk">${esc(r.rank)}</div><div class="lb">${esc(r.label)}</div><div class="ds">${esc(r.desc)}</div></div>`).join("")}</div>
+${s.note ? `<div class="note">${esc(s.note)}</div>` : ""}
+</body></html>`;
+}
+
 (async () => {
   const specs = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
@@ -83,7 +118,7 @@ ${pts.length ? `<ul>${pts.map((p, i) => `<li><b>${i + 1}</b><span>${esc(p)}</spa
   let hi = 0;
   for (const s of specs) {
     fs.mkdirSync(path.dirname(path.resolve(s.out)), { recursive: true });
-    await p.setContent(s.brand === "haguruma" ? haguruma(s, hi++) : halulu(s), { waitUntil: "load" });
+    await p.setContent(s.kind === "table" ? table(s) : (s.brand === "haguruma" ? haguruma(s, hi++) : halulu(s)), { waitUntil: "load" });
     await p.evaluate(() => document.fonts.ready);
     await p.screenshot({ path: s.out, type: "png" });
     console.log(s.out);
