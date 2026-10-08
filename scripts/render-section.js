@@ -118,20 +118,39 @@ function illust(s, idx) {
   const worry = s.mood === "worry";
   const chara = s.chara || (hg ? (worry ? "komari" : HG.pick("section", seed, idx)) : (worry ? "shonbori" : CH.pick("mini", seed, idx)));
   const img = hg ? HG.dataUri(chara) : CH.dataUri(chara);
-  const C = hg ? { bg:"radial-gradient(ellipse at 62% 45%,#FFFFFF 0%,#EEF8F1 45%,#DDF0E4 100%)", dot:"#9FDDB8", dot2:"#FFE9A8", ink:"#16382A", line:"#BFE3CB", floor:"rgba(34,153,79,.12)" }
-                : { bg:"radial-gradient(ellipse at 62% 45%,#FFFFFF 0%,#FFF3F5 45%,#FBE3E8 100%)", dot:"#F7CBD4", dot2:"#C9E6CF", ink:"#3A2E2E", line:"#F3C9D3", floor:"rgba(229,139,160,.14)" };
+  const C = hg ? { c1:"#FFFFFF", c2:"#EEF8F1", c3:"#DDF0E4", dot:"#9FDDB8", dot2:"#FFE9A8", ink:"#16382A", line:"#BFE3CB", floor:"rgba(34,153,79,.12)" }
+                : { c1:"#FFFFFF", c2:"#FFF3F5", c3:"#FBE3E8", dot:"#F7CBD4", dot2:"#C9E6CF", ink:"#3A2E2E", line:"#F3C9D3", floor:"rgba(229,139,160,.14)" };
   const say = String(s.say || "").slice(0, 24);
+  // 画像ごとに配置を変える（同じ記事の中で続けて同じ配置にならない）
+  const base = [...seed].reduce((n, c) => n + c.codePointAt(0), 0);
+  const L = Number.isInteger(s.layout) ? s.layout % 4 : (base + idx) % 4;
+  const fs_ = fit(say, 420, 32, 44);
+  // [キャラの位置, キャラの高さ, 吹き出しの位置, しっぽの向き, 背景の明るい所]
+  const LAY = [
+    { chara:"right:140px;bottom:70px", h:500, floorX:640, bubble:"left:90px;top:170px", tail:"right", glow:"62% 45%" },
+    { chara:"left:120px;bottom:60px", h:480, floorX:110, bubble:"right:90px;top:120px", tail:"left", glow:"35% 55%" },
+    { chara:"left:50%;bottom:40px;transform:translateX(-50%)", h:420, floorX:340, bubble:"left:50%;top:44px;transform:translateX(-50%)", tail:"down", glow:"50% 70%" },
+    { chara:"right:170px;bottom:40px", h:470, floorX:580, bubble:"left:250px;top:60px", tail:"downright", glow:"65% 60%" },
+  ][L];
+  const tails = {
+    right: `right:-30px;top:58%;border:18px solid transparent;border-left:30px solid #fff;border-right:0;filter:drop-shadow(4px 0 0 ${C.line})`,
+    left: `left:-30px;top:58%;border:18px solid transparent;border-right:30px solid #fff;border-left:0;filter:drop-shadow(-4px 0 0 ${C.line})`,
+    down: `left:50%;bottom:-30px;margin-left:-18px;border:18px solid transparent;border-top:30px solid #fff;border-bottom:0;filter:drop-shadow(0 4px 0 ${C.line})`,
+    downright: `right:70px;bottom:-30px;border:18px solid transparent;border-top:30px solid #fff;border-bottom:0;filter:drop-shadow(0 4px 0 ${C.line})`,
+  };
   const bubble = say ? `<div class="bubble">${esc(say)}</div>` : "";
-  const dots = [[90,90,60,.5],[180,520,34,.6],[300,140,22,.7],[1040,110,40,.5],[1110,480,26,.6],[220,330,14,.8],[1000,600,18,.7]]
-    .map(([x,y,r,o],i) => `<div class="d" style="left:${x}px;top:${y}px;width:${r}px;height:${r}px;opacity:${o};background:${i%2?C.dot2:C.dot}"></div>`).join("");
+  const charaPos = say ? LAY.chara : "left:50%;bottom:60px;transform:translateX(-50%)";
+  const dotSets = [[[90,90,60,.5],[180,520,34,.6],[300,140,22,.7],[1040,110,40,.5],[1110,480,26,.6],[220,330,14,.8],[1000,600,18,.7]],
+                   [[1080,560,60,.5],[980,80,30,.6],[60,60,24,.7],[620,600,20,.6],[40,400,40,.5],[860,300,14,.8]]];
+  const dots = dotSets[L % 2].map(([x,y,r,o],i) => `<div class="d" style="left:${x}px;top:${y}px;width:${r}px;height:${r}px;opacity:${o};background:${i%2?C.dot2:C.dot}"></div>`).join("");
   return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE}
-body{background:${C.bg}}
+body{background:radial-gradient(ellipse at ${LAY.glow},${C.c1} 0%,${C.c2} 45%,${C.c3} 100%)}
 .d{position:absolute;border-radius:50%}
-.floor{position:absolute;left:50%;bottom:58px;width:520px;height:60px;margin-left:${say ? 40 : -260}px;border-radius:50%;background:${C.floor};filter:blur(6px)}
-.chara{position:absolute;bottom:70px;height:500px;max-width:520px;object-fit:contain;${say ? "right:150px" : "left:50%;transform:translateX(-50%)"};filter:drop-shadow(0 14px 16px rgba(0,0,0,.10))}
-.bubble{position:absolute;left:90px;top:170px;max-width:500px;background:#fff;border:4px solid ${C.line};border-radius:40px;padding:30px 40px;font-size:${fit(say, 420, 32, 44)}px;font-weight:900;color:${C.ink};line-height:1.45;word-break:keep-all;box-shadow:0 6px 0 ${C.line}}
-.bubble::after{content:"";position:absolute;right:-30px;top:60%;border:18px solid transparent;border-left:30px solid #fff;filter:drop-shadow(4px 0 0 ${C.line})}
-</style></head><body>${dots}<div class="floor"></div>${bubble}<img class="chara" src="${img}"></body></html>`;
+.floor{position:absolute;bottom:${L === 2 ? 30 : 48}px;left:${say ? LAY.floorX : 340}px;width:520px;height:60px;border-radius:50%;background:${C.floor};filter:blur(6px)}
+.chara{position:absolute;${charaPos};height:${say ? LAY.h : 500}px;max-width:540px;object-fit:contain;filter:drop-shadow(0 14px 16px rgba(0,0,0,.10))}
+.bubble{position:absolute;${LAY.bubble};max-width:${L === 2 ? 760 : 500}px;white-space:${L === 2 ? "nowrap" : "normal"};background:#fff;border:4px solid ${C.line};border-radius:40px;padding:28px 40px;font-size:${fs_}px;font-weight:900;color:${C.ink};line-height:1.45;word-break:keep-all;box-shadow:0 6px 0 ${C.line}}
+.bubble::after{content:"";position:absolute;${tails[LAY.tail]}}
+</style></head><body>${dots}<div class="floor"></div><img class="chara" src="${img}">${bubble}</body></html>`;
 }
 
 (async () => {
