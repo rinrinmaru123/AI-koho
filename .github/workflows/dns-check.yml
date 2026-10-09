@@ -1,0 +1,41 @@
+name: ドメインのDNSを確認する
+
+on:
+  push:
+    branches: [main]
+    paths: ["dns-check/**.txt"]
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 確認
+        run: |
+          for f in dns-check/*.txt; do
+            d=$(basename "$f" .txt)
+            {
+              echo "checked: $(date -u +%FT%TZ)"
+              echo "--- rdap"; curl -sS "https://rdap.verisign.com/com/v1/domain/$d" | python3 -c 'import json,sys;j=json.load(sys.stdin);print([n["ldhName"] for n in j.get("nameservers",[])]);print(j.get("status"));print([(e["eventAction"],e["eventDate"]) for e in j.get("events",[])])'
+              echo "--- NS (8.8.8.8)"; dig +short NS "$d" @8.8.8.8
+              echo "--- MX"; dig +short MX "$d" @8.8.8.8
+              echo "--- A"; dig +short A "$d" @8.8.8.8
+              echo "--- TXT"; dig +short TXT "$d" @8.8.8.8
+              echo "--- DKIM"; dig +short TXT "google._domainkey.$d" @8.8.8.8 | cut -c1-60
+              echo "--- ask xserver NS directly (MX)"; dig +short MX "$d" @ns1.xserver.jp
+            } > "dns-check/$d.result" 2>&1
+            rm "$f"
+          done
+      - name: 保存
+        run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add dns-check
+          git diff --cached --quiet && exit 0
+          git commit -m "DNS確認結果
+
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+          git push
