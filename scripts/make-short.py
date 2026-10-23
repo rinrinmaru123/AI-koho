@@ -81,6 +81,103 @@ def flip_frames(cur, nxt, n):
 
 
 def music(seconds, seed):
+    """ポップなBGM（自作）：はずむベース・ドラム・明るいシンセのコード＋メロディ"""
+    sr = 44100
+    rng = np.random.default_rng(int(hashlib.md5(seed.encode()).hexdigest()[:8], 16))
+    keys = [0, 2, 5, 7, -3, -1]
+    base = 261.63 * 2 ** (keys[rng.integers(len(keys))] / 12)
+    progs = [[[0, 4, 7], [7, 11, 14], [9, 12, 16], [5, 9, 12]],   # I V vi IV
+             [[5, 9, 12], [7, 11, 14], [4, 7, 11], [9, 12, 16]],  # IV V iii vi
+             [[0, 4, 7], [9, 12, 16], [5, 9, 12], [7, 11, 14]]]   # I vi IV V
+    prog = progs[rng.integers(len(progs))]
+    bpm = 120 + int(rng.integers(0, 9))
+    beat = 60 / bpm
+    total = int(seconds * sr) + sr
+    out = np.zeros(total)
+    tt_cache = {}
+
+    def tvec(dur):
+        n = int(dur * sr)
+        if n not in tt_cache:
+            tt_cache[n] = np.arange(n) / sr
+        return tt_cache[n]
+
+    def add(sig, start):
+        s = int(start * sr)
+        if s >= total or s < 0:
+            return
+        e = min(total, s + len(sig))
+        out[s:e] += sig[:e - s]
+
+    def pluck(freq, dur, amp):  # 明るいシンセ（矩形っぽい倍音）
+        tt = tvec(dur)
+        env = np.exp(-tt * 6) * (1 - np.exp(-tt * 300))
+        ph = 2 * np.pi * freq * tt
+        return amp * env * (np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.25 * np.sin(3 * ph) + 0.12 * np.sin(5 * ph))
+
+    def bass(freq, dur, amp):
+        tt = tvec(dur)
+        env = np.exp(-tt * 4) * (1 - np.exp(-tt * 400))
+        ph = 2 * np.pi * freq * tt
+        return amp * env * (np.sin(ph) + 0.3 * np.sin(2 * ph))
+
+    def kick():
+        tt = tvec(0.25)
+        f = 120 * np.exp(-tt * 18) + 45
+        return 0.9 * np.exp(-tt * 14) * np.sin(2 * np.pi * np.cumsum(f) / sr)
+
+    noise = rng.standard_normal(int(0.3 * sr))
+
+    def snare():
+        tt = tvec(0.18)
+        n = noise[:len(tt)]
+        return 0.35 * np.exp(-tt * 22) * n + 0.25 * np.exp(-tt * 30) * np.sin(2 * np.pi * 190 * tt)
+
+    def hat(open_=False):
+        tt = tvec(0.12 if open_ else 0.05)
+        n = np.diff(np.concatenate([[0], noise[:len(tt)]]))  # 高い音だけ
+        return 0.12 * np.exp(-tt * (25 if open_ else 80)) * n
+
+    mel_shape = [2, 1, 0, 1, 2, 2, 1, 0]
+    t = 0.0
+    bar = 0
+    while t < seconds:
+        ch = prog[bar % 4]
+        root = base * 2 ** ((ch[0] - 24) / 12)
+        # ベース（8分ではずむ）
+        for k in range(8):
+            add(bass(root * (2 if k % 4 == 3 else 1), beat * 0.45, 0.32), t + k * beat / 2)
+        # ドラム（最初の1小節はハットだけで入る）
+        for k in range(4):
+            if bar > 0 or k >= 2:
+                if k in (0, 2):
+                    add(kick(), t + k * beat)
+                if k in (1, 3):
+                    add(snare(), t + k * beat)
+            for h in range(2):
+                add(hat(open_=(h == 1 and k == 3)), t + k * beat + h * beat / 2)
+        # コード（裏拍のスタブ）
+        for k in range(4):
+            for n_ in ch:
+                add(pluck(base * 2 ** (n_ / 12), beat * 0.4, 0.06), t + k * beat + beat / 2)
+        # メロディ（2小節ごとに少し変える）
+        shift = rng.integers(0, 3) if bar % 2 == 0 else 0
+        for k, idx in enumerate(mel_shape):
+            if rng.random() < 0.8:
+                note = ch[(idx + shift) % 3] + 12
+                add(pluck(base * 2 ** (note / 12), beat * 0.5, 0.09), t + k * beat / 2)
+        t += beat * 4
+        bar += 1
+    out = out[:int(seconds * sr)]
+    fade = int(1.0 * sr)
+    out[:int(0.05 * sr)] *= np.linspace(0, 1, int(0.05 * sr))
+    out[-fade:] *= np.linspace(1, 0, fade)
+    out = np.tanh(out * 1.2)
+    out = out / (np.abs(out).max() + 1e-9) * 0.6
+    return (out * 32767).astype(np.int16), sr
+
+
+def music_musicbox(seconds, seed):
     sr = 44100
     rng = np.random.default_rng(int(hashlib.md5(seed.encode()).hexdigest()[:8], 16))
     keys = [0, 2, 5, 7, -3]                      # 調を少し変える
@@ -182,6 +279,10 @@ def main():
         for i, s in enumerate(slides[:len(pages)]):
             if s.get("type") == "cover":
                 texts[i] = plain(s.get("title"))
+            elif s.get("type") == "point":
+                # 本文（メイン）を読んでから、キャラのひと言（本人希望 2026-10-23）
+                parts = [plain(s.get("body")), plain(s.get("say"))]
+                texts[i] = "　".join(p for p in parts if p)
             elif s.get("say"):
                 texts[i] = plain(s.get("say"))
     if brand and brand in ENDCARD and os.path.exists(ENDCARD[brand]):
@@ -196,7 +297,7 @@ def main():
     wav = dst + ".wav"
     pcm, sr = music(seconds, seed)
     if brand:
-        mix = pcm.astype(np.float32) * 0.35   # 声の下でBGMを小さく
+        mix = pcm.astype(np.float32) * 0.3   # 声の下でBGMを小さく
         pos = 0
         for i, v in enumerate(voices):
             if len(v):
