@@ -28,17 +28,20 @@ body{width:1080px;height:1350px;background:linear-gradient(160deg,#FFF9F6 0%,#FD
 .chara.big{right:-30px;bottom:150px;height:460px}
 .chara.end{right:-30px;top:150px;height:440px}
 .chara.mini{right:70px;top:70px;height:170px}
+.chara.talk{right:-10px;bottom:128px;height:400px}
+.bubble{position:absolute;left:96px;bottom:200px;max-width:540px;background:#fff;border:4px solid #F2BFCB;border-radius:48px;padding:30px 40px;font-size:40px;line-height:1.55;font-weight:700;color:var(--ink);box-shadow:0 10px 30px rgba(217,112,138,.15)}
+.bubble::after{content:"";position:absolute;right:-30px;bottom:44px;width:44px;height:44px;background:#fff;border-right:4px solid #F2BFCB;border-bottom:4px solid #F2BFCB;transform:rotate(-45deg);border-radius:0 0 10px 0}
 .halo{position:absolute;border-radius:50%;background:radial-gradient(circle,#FFFFFF 0%,#FFF3F5 45%,rgba(255,243,245,0) 70%)}
-.wrap{position:absolute;inset:0;padding:120px 96px 110px;display:flex;flex-direction:column}
+.wrap{position:absolute;inset:0;z-index:1;padding:120px 96px 110px;display:flex;flex-direction:column}
 .brand{display:flex;align-items:baseline;gap:18px;font-size:32px;font-weight:700;letter-spacing:.08em;color:var(--rose)}
 .brand small{font-size:24px;letter-spacing:.2em;color:var(--soft);font-weight:500}
 .serif{font-family:"Noto Serif CJK JP","Noto Serif JP",serif}
-.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-size:28px;color:var(--soft);letter-spacing:.04em}
+.foot{position:relative;z-index:2;margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-size:28px;color:var(--soft);letter-spacing:.04em}
 .page{font-variant-numeric:tabular-nums;font-weight:700;color:var(--rose)}
 .cover .title{margin-top:170px;font-size:92px;line-height:1.35;font-weight:700}
 .cover .bar{margin-top:56px;width:120px;height:8px;background:var(--leaf);border-radius:4px}
 .cover .lead{margin-top:48px;font-size:36px;line-height:1.75;color:var(--soft);max-width:520px}
-.point .no{margin-top:190px;font-size:140px;font-weight:700;line-height:1;color:#F2BFCB}
+.point .no{margin-top:120px;font-size:140px;font-weight:700;line-height:1;color:#F2BFCB}
 .point .heading{margin-top:-24px;font-size:66px;line-height:1.4;font-weight:700}
 .point .body{margin-top:56px;font-size:42px;line-height:1.85}
 .point .body b,.info .body b{color:var(--rose)}
@@ -74,7 +77,7 @@ function slideHTML(s, i, n, seed) {
       <div class="heading serif">${br(s.heading)}</div><div class="body">${rich(s.body)}</div>
       <div class="foot"><span>${HANDLE}</span>${page}</div></div>`;
   } else {
-    deco = `<div class="halo" style="width:420px;height:420px;right:-60px;top:-80px"></div><img class="chara mini" src="${CH.dataUri(CH.pick("mini", seed, i, s.chara))}">`;
+    deco = `<div class="halo" style="width:640px;height:640px;right:-200px;bottom:-40px"></div><img class="chara talk" src="${CH.dataUri(CH.pick("mini", seed, i, s.chara))}">` + (s.say ? `<div class="bubble">${br(s.say)}</div>` : "");
     inner = `<div class="wrap point">${BRAND}<div class="no serif">${String(s.no || i).padStart(2, "0")}</div>
       <div class="heading serif">${br(s.heading)}</div><div class="body">${rich(s.body)}</div>
       <div class="foot"><span>${HANDLE}</span>${page}</div></div>`;
