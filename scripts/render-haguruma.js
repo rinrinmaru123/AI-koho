@@ -132,7 +132,7 @@ small{font-size:.62em}
 .rows.sm .r{font-size:35px;padding:12px 4px}
 .rows em{color:var(--em)}
 .page{position:absolute;right:40px;top:30px;z-index:6;background:var(--g1);color:#fff;font-weight:800;font-size:40px;padding:12px 30px;border-radius:999px;box-shadow:0 6px 14px rgba(30,122,74,.25)}
-.logo{position:absolute;left:52px;bottom:58px;z-index:6;height:118px}
+.logo{position:absolute;left:46px;bottom:40px;z-index:6;height:196px;padding:14px 26px;background:rgba(255,255,255,.92);border-radius:30px;box-shadow:0 8px 20px rgba(30,120,74,.12)}
 .swipe{position:absolute;right:46px;bottom:62px;z-index:6;background:linear-gradient(180deg,#26935A,var(--g1));color:#fff;font-weight:800;font-size:42px;padding:26px 50px;border-radius:999px;box-shadow:0 10px 22px rgba(30,122,74,.3),inset 0 2px 0 rgba(255,255,255,.3);white-space:nowrap}
 .cloud{position:absolute;z-index:7}
 .cloud svg{position:absolute;left:0;top:0}
@@ -164,7 +164,8 @@ function slideHTML(s, i, n, seed, T, pose) {
     + ground(r());
   let body = "", over = "";
   const PAGE = `<div class="page">${i + 1}/${n}</div>`;
-  const LOGO = `<img class="logo" src="${img("logo")}">`;
+  // ロゴは本人支給の正式版（上にHaguruma、下に歯車。2026-10-24）。logo.png（横長・タグライン付き）は使わない
+  const LOGO = `<img class="logo" src="${img("logo-v")}">`;
   const SWIPE = `<div class="swipe">スワイプしてね →</div>`;
   const chara = (side, off, bottom, h) => { over += `<img class="chara" style="${side}:${off}px;bottom:${bottom}px;height:${h}px" src="${img(pose)}">`; return 1350 - bottom - h; };
   if (type === "cover") {
@@ -187,9 +188,8 @@ function slideHTML(s, i, n, seed, T, pose) {
     body += `<div class="col" style="left:44px;top:120px;width:1000px">
       <div class="big" style="font-size:${fitSize(msg, 980, 132, 96)}px">${bigLines(msg)}</div>
       <div class="box" style="margin-top:40px;width:600px;padding:8px 32px">${rowsHTML(lead)}</div>
-      <img style="margin:40px 0 0 30px;width:420px" src="${img("logo")}">
-      <div class="box" style="margin-top:36px;align-self:flex-start;padding:18px 32px;font-weight:800;font-size:36px;line-height:1.5">${inl(s.tagline || "歯科で働く人も、医院も。").replace(/\n/g, "<br>")}<br>Hagurumaでつながる。</div></div>`;
-    const top = chara("right", -50, 290, 620);
+      <div class="box" style="margin-top:30px;width:600px;padding:22px 28px;display:flex;align-items:center;gap:26px"><img style="height:190px" src="${img("logo-v")}"><div style="font-weight:800;font-size:33px;line-height:1.5">${inl(s.tagline || "歯科で働く人も、\n医院も。").replace(/\n/g, "<br>")}<br>Hagurumaで<br>つながる。</div></div></div>`;
+    const top = chara("right", -60, 290, 580);
     over += cloud(say, 760, Math.max(top - 130, 440), 290, 48, "bl", -6);
     body += `<div class="line"><span class="lg">LINE</span>公式LINEで新着をチェック →</div>`;
   } else if (type === "check") {
