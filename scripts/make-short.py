@@ -238,9 +238,18 @@ VV_DIR = os.environ.get("VOICEVOX_DIR", "/home/claude/vv")
 ENDCARD = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard.png")}
 
 
+# 読み間違いの直し（本人指定）
+READINGS = {"少し": "すこし"}
+# 最後の画像ページ（type end）で読む言葉。画像の「歯を、育てよう。」と同じ（本人希望 2026-10-24）
+END_LINE = {"halulu": "歯を、育てよう。"}
+
+
 def plain(s):
     import re
-    return re.sub(r"\*\*|\{|\}", "", str(s or "")).replace("\n", "")
+    t = re.sub(r"\*\*|\{|\}", "", str(s or "")).replace("\n", "")
+    for a, b in READINGS.items():
+        t = t.replace(a, b)
+    return t
 
 
 def speak(texts, brand):
@@ -285,6 +294,8 @@ def main():
                 parts = {"heading": [s.get("heading")], "say": [s.get("say")]}.get(read, [s.get("heading"), s.get("say")])
                 parts = [plain(p) for p in parts]
                 texts[i] = "　".join(p for p in parts if p)
+            elif s.get("type") == "end" and brand in END_LINE:
+                texts[i] = END_LINE[brand]
             elif s.get("say"):
                 texts[i] = plain(s.get("say"))
     if brand and brand in ENDCARD and os.path.exists(ENDCARD[brand]):
