@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image, ImageFilter, ImageDraw
 
 W, H, FPS = 1080, 1920, 30
-HOLD, FLIP = 2.0, 0.55  # 1ページの表示秒数・めくりの秒数
+HOLD, FLIP = 2.8, 0.75  # 1ページの表示秒数・めくりの秒数
 
 
 def compose(path):
@@ -231,7 +231,7 @@ def music_musicbox(seconds, seed):
 
 # キャラクターの声（VOICEVOX）。クレジット表記が必要：Halulu「VOICEVOX:春歌ナナ」／Haguruma「VOICEVOX:WhiteCUL」
 VOICES = {
-    "halulu": dict(model="13.vvm", style=54, speed=1.08, pitch=-0.05, intonation=1.15, name="はるる渋谷歯科"),   # はるみちゃん＝春歌ナナ（本人選定 2026-10-23）
+    "halulu": dict(model="13.vvm", style=54, speed=0.93, pitch=-0.05, intonation=1.15, name="はるる渋谷歯科"),   # はるみちゃん＝春歌ナナ（本人選定 2026-10-23）
     "haguruma": dict(model="8.vvm", style=24, speed=1.0, pitch=0.0, intonation=1.1, name="はぐるま"),           # はぐるん＝WhiteCUL（たのしい）
 }
 VV_DIR = os.environ.get("VOICEVOX_DIR", "/home/claude/vv")
@@ -293,7 +293,7 @@ def main():
     voices = speak(texts, brand) if brand else [np.zeros(0, dtype=np.int16)] * len(pages)
     vsr = 24000
     nflip = int(FLIP * FPS)
-    holds = [max(int(HOLD * FPS), int((len(v) / vsr + 0.45) * FPS)) for v in voices]
+    holds = [max(int(HOLD * FPS), int((len(v) / vsr + 0.9) * FPS)) for v in voices]
     total_frames = sum(holds) + (len(pages) - 1) * nflip
     seconds = total_frames / FPS
     wav = dst + ".wav"
