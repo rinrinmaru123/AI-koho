@@ -235,7 +235,8 @@ VOICES = {
     "haguruma": dict(model="8.vvm", style=24, speed=1.0, pitch=0.0, intonation=1.1, name="はぐるま"),           # はぐるん＝WhiteCUL（たのしい）
 }
 VV_DIR = os.environ.get("VOICEVOX_DIR", "/home/claude/vv")
-ENDCARD = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard.png")}
+ENDCARD = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard.png"),
+           "haguruma": os.path.join(os.path.dirname(__file__), "..", "assets", "haguruma-endcard.png")}  # 本人支給の正式ロゴ（2026-10-24）
 ENDCARD_VOICE = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard-voice.wav")}
 
 
