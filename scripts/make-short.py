@@ -280,8 +280,8 @@ def main():
             if s.get("type") == "cover":
                 texts[i] = plain(s.get("title"))
             elif s.get("type") == "point":
-                # 本文（メイン）を読んでから、キャラのひと言（本人希望 2026-10-23）
-                parts = [plain(s.get("body")), plain(s.get("say"))]
+                # 見出し（例「すき間が狭いならフロス」）を読んでから、キャラのひと言（本人希望 2026-10-24）
+                parts = [plain(s.get("heading")), plain(s.get("say"))]
                 texts[i] = "　".join(p for p in parts if p)
             elif s.get("say"):
                 texts[i] = plain(s.get("say"))
