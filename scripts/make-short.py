@@ -236,6 +236,7 @@ VOICES = {
 }
 VV_DIR = os.environ.get("VOICEVOX_DIR", "/home/claude/vv")
 ENDCARD = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard.png")}
+ENDCARD_VOICE = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard-voice.wav")}
 
 
 # 読み間違いの直し（本人指定）
@@ -302,6 +303,10 @@ def main():
         ec = Image.open(ENDCARD[brand]).convert("RGB").resize((W, H))
         pages.append(ec); texts.append(VOICES[brand]["name"])
     voices = speak(texts, brand) if brand else [np.zeros(0, dtype=np.int16)] * len(pages)
+    # 最後のロゴの「はるる渋谷歯科」は本人が用意した録音を使う（2026-10-24 本人指定。24kHz mono wav）
+    if brand and ENDCARD_VOICE.get(brand) and os.path.exists(ENDCARD_VOICE[brand]) and brand in ENDCARD:
+        with wave.open(ENDCARD_VOICE[brand]) as r:
+            voices[-1] = np.frombuffer(r.readframes(r.getnframes()), dtype=np.int16)
     vsr = 24000
     nflip = int(FLIP * FPS)
     holds = [max(int(HOLD * FPS), int((len(v) / vsr + 0.9) * FPS)) for v in voices]
