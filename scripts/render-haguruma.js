@@ -49,16 +49,20 @@ const rng = seed => { let x = hash(seed) || 1; return () => { x ^= x << 13; x ^=
 const POSES = { cover: ["ureshii", "ganbaru", "iine", "wink"], point: ["iine", "nikkori", "ganbaru", "wink", "tere", "ureshii", "bikkuri", "tsujo"], check: ["iine", "nikkori"], end: ["ureshii", "iine", "wink", "ganbaru"] };
 const WORRY = /不安|悩|困|つら|辛い|ミス|失敗|疲れ|辞め|トラブル|心配|怖|迷|ストレス|しんどい|モヤモヤ/;
 function posePlan(slides, seed) {
-  const used = new Set(); const r = rng(seed + "pose");
-  return slides.map(s => {
+  // 同じポーズが続かないように（隣の枚と同じにはしない。2026-10-24 本人指摘）
+  const used = new Set(); const r = rng(seed + "pose"); let prev = null;
+  return slides.map(s => { const p0 = pick1(s); prev = p0; return p0; });
+  function pick1(s) {
     if (s.chara && fs.existsSync(path.join(HG, s.chara + ".png"))) { used.add(s.chara); return s.chara; }
     const t = s.type || "point";
     if (t === "point" && WORRY.test([s.heading, s.body].join("")) && !used.has("komari")) { used.add("komari"); return "komari"; }
     const pool = POSES[t] || POSES.point;
-    const free = pool.filter(p => !used.has(p));
-    const p = (free.length ? free : pool)[Math.floor(r() * (free.length ? free.length : pool.length))];
+    let cand = pool.filter(p => !used.has(p));
+    if (!cand.length) cand = [...POSES.point, ...pool].filter(p => !used.has(p));
+    if (!cand.length) cand = pool.filter(p => p !== prev);
+    const p = cand[Math.floor(r() * cand.length)];
     used.add(p); return p;
-  });
+  }
 }
 const SAY = { cover: ["気になる！", "知りたい！", "チェック！"], point: ["なるほど！", "ここ大事！", "いいね！", "安心だね！", "うれしい！", "知ってた？"], check: ["要チェック！"], end: ["登録してね！", "待ってるよ！"] };
 
@@ -219,7 +223,7 @@ function slideHTML(s, i, n, seed, T, pose) {
     } else if (L === 1) {
       body += `<div class="col" style="left:40px;top:70px;width:1010px">${headBlock}<div class="box" style="margin-top:50px;align-self:flex-end;width:590px;padding:10px 34px">${rowsHTML(s.body)}</div></div>`;
       bg += arrow(30, 930, 300, -20);
-      const top = chara("left", -30 + r() * 30, 170, 620);
+      const top = chara("left", -30 + r() * 30, 240, 580);
       over += cloud(say, 60, Math.max(top - 150, 470), 280, 48, "br", 5);
     } else {
       body += `<div class="col" style="left:40px;top:60px;width:1010px">${headBlock}<div class="box" style="margin-top:44px;width:680px;padding:10px 36px">${rowsHTML(s.body)}</div></div>`;
