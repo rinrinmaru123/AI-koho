@@ -132,7 +132,7 @@ small{font-size:.62em}
 .rows.sm .r{font-size:35px;padding:12px 4px}
 .rows em{color:var(--em)}
 .page{position:absolute;right:40px;top:30px;z-index:6;background:var(--g1);color:#fff;font-weight:800;font-size:40px;padding:12px 30px;border-radius:999px;box-shadow:0 6px 14px rgba(30,122,74,.25)}
-.logo{position:absolute;left:46px;bottom:40px;z-index:6;height:196px;padding:14px 26px;background:rgba(255,255,255,.92);border-radius:30px;box-shadow:0 8px 20px rgba(30,120,74,.12)}
+.logo{position:absolute;left:60px;bottom:50px;z-index:6;height:176px;filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255,255,255,.9))}
 .swipe{position:absolute;right:46px;bottom:62px;z-index:6;background:linear-gradient(180deg,#26935A,var(--g1));color:#fff;font-weight:800;font-size:42px;padding:26px 50px;border-radius:999px;box-shadow:0 10px 22px rgba(30,122,74,.3),inset 0 2px 0 rgba(255,255,255,.3);white-space:nowrap}
 .cloud{position:absolute;z-index:7}
 .cloud svg{position:absolute;left:0;top:0}
@@ -188,7 +188,7 @@ function slideHTML(s, i, n, seed, T, pose) {
     body += `<div class="col" style="left:44px;top:120px;width:1000px">
       <div class="big" style="font-size:${fitSize(msg, 980, 132, 96)}px">${bigLines(msg)}</div>
       <div class="box" style="margin-top:40px;width:600px;padding:8px 32px">${rowsHTML(lead)}</div>
-      <div class="box" style="margin-top:30px;width:600px;padding:22px 28px;display:flex;align-items:center;gap:26px"><img style="height:190px" src="${img("logo-v")}"><div style="font-weight:800;font-size:33px;line-height:1.5">${inl(s.tagline || "歯科で働く人も、\n医院も。").replace(/\n/g, "<br>")}<br>Hagurumaで<br>つながる。</div></div></div>`;
+      <div style="margin-top:30px;width:620px;display:flex;align-items:center;gap:26px"><img style="height:200px;margin-left:16px" src="${img("logo-v")}"><div class="box" style="padding:18px 26px;font-weight:800;font-size:33px;line-height:1.5">${inl(s.tagline || "歯科で働く人も、\n医院も。").replace(/\n/g, "<br>")}<br>Hagurumaで<br>つながる。</div></div></div>`;
     const top = chara("right", -60, 290, 580);
     over += cloud(say, 760, Math.max(top - 130, 440), 290, 48, "bl", -6);
     body += `<div class="line"><span class="lg">LINE</span>公式LINEで新着をチェック →</div>`;
