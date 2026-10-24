@@ -243,12 +243,12 @@ ENDCARD_VOICE = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets
 # 読み間違いの直し（本人指定）
 READINGS = {"少し": "すこし"}
 # 最後の画像ページ（type end）で読む言葉。画像の「歯を、育てよう。」と同じ（本人希望 2026-10-24）
-END_LINE = {"halulu": "歯を、育てよう。"}
+END_LINE = {"halulu": "歯を、育てよう。", "haguruma": "歯科の仕事を、もっと自由に。"}
 
 
 def plain(s):
     import re
-    t = re.sub(r"\*\*|\{|\}", "", str(s or "")).replace("\n", "")
+    t = re.sub(r"(?m)\*\*|\{|\}|^~", "", str(s or "")).replace("\n", "")
     for a, b in READINGS.items():
         t = t.replace(a, b)
     return t
