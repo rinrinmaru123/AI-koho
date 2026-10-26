@@ -15,13 +15,21 @@ const fileUrl = p => "file://" + p.split(path.sep).map(encodeURIComponent).join(
 
 /* ---------- 色テーマ（内容で自動選択。1枚目に "theme" を書けばそれを使う） ---------- */
 // green系は共通。hl=マーカー、pop=集中線・矢印・キラキラ、em=強調文字、wash=水彩のにじみ
+// bg=背景のグラデーション（3色）、band=表紙の帯の色
 const THEMES = {
-  free:   { hl: "#FFF07A", pop: "#FFD43B", em: "#22A05A", wash: "#BFEBD0", wash2: "#E9F7C8", ink: "#174A31" },
-  care:   { hl: "#FBE6C8", pop: "#F4B49A", em: "#2E9C78", wash: "#CDEFE4", wash2: "#F8EBDD", ink: "#1D4A3C" },
-  money:  { hl: "#FFF07A", pop: "#F2C230", em: "#1F5FA8", wash: "#C9E8D6", wash2: "#DCE7F7", ink: "#163A5C" },
-  skill:  { hl: "#FFE2B0", pop: "#FF9F43", em: "#E8792A", wash: "#C6ECD3", wash2: "#FFE9D2", ink: "#174A31" },
-  clinic: { hl: "#E3EEF0", pop: "#9DB3BF", em: "#22A05A", wash: "#CFEAD9", wash2: "#E8EDF0", ink: "#1E3B33" },
+  free:     { hl: "#FFF07A", pop: "#FFD43B", em: "#22A05A", wash: "#BFEBD0", wash2: "#E9F7C8", ink: "#174A31", bg: ["#FFFFFF", "#F4FBF6", "#E3F5EA"], band: "#BDE8CC" },
+  care:     { hl: "#FBE6C8", pop: "#F4B49A", em: "#2E9C78", wash: "#CDEFE4", wash2: "#F8EBDD", ink: "#1D4A3C", bg: ["#FFFFFF", "#FFF9F2", "#F8EBDD"], band: "#F6DCC4" },
+  money:    { hl: "#FFF07A", pop: "#F2C230", em: "#1F5FA8", wash: "#C9E8D6", wash2: "#DCE7F7", ink: "#163A5C", bg: ["#FFFFFF", "#F4F8FD", "#DCE7F7"], band: "#C9DBF3" },
+  skill:    { hl: "#FFE2B0", pop: "#FF9F43", em: "#E8792A", wash: "#C6ECD3", wash2: "#FFE9D2", ink: "#174A31", bg: ["#FFFFFF", "#FFF8EF", "#FFE6CC"], band: "#FFD9AE" },
+  clinic:   { hl: "#E3EEF0", pop: "#9DB3BF", em: "#22A05A", wash: "#CFEAD9", wash2: "#E8EDF0", ink: "#1E3B33", bg: ["#FFFFFF", "#F5F8F9", "#E3EBEE"], band: "#D6E3E8" },
+  sky:      { hl: "#D3ECFF", pop: "#5AA9E6", em: "#1F78C8", wash: "#CFE6FA", wash2: "#E2F4EC", ink: "#173A55", bg: ["#FFFFFF", "#F2F8FE", "#DBECFB"], band: "#C4E0F8" },
+  pink:     { hl: "#FFDCE8", pop: "#F48FB1", em: "#D9467A", wash: "#FBD9E5", wash2: "#E6F6EA", ink: "#4A2333", bg: ["#FFFFFF", "#FFF6F9", "#FCE2EC"], band: "#F9CFDE" },
+  lavender: { hl: "#E9DFFF", pop: "#A88BEB", em: "#7A55D3", wash: "#E3DAFA", wash2: "#E4F5EC", ink: "#2E2350", bg: ["#FFFFFF", "#F8F5FF", "#EAE2FB"], band: "#DCCFF8" },
 };
+// 色・表紙の配置・表紙のはぐるんは、投稿ごとに順番に変える（2026-10-26 本人希望）
+const THEME_ORDER = ["free", "sky", "skill", "lavender", "care", "pink", "money"];
+const COVER_POSES = ["ureshii", "iine", "ganbaru", "wink", "nikkori", "tere", "bikkuri"];
+let COVER_LAYOUT = 0;
 const RULES = [
   ["clinic", /医院の方|採用担当|医院向け|求人を出|募集を出|掲載|人手不足|欠員|長期採用|採用/],
   ["skill", /講座|スキル|資格|アートメイク|セミナー|勉強|学び|技術|キャリア/],
@@ -64,7 +72,7 @@ function posePlan(slides, seed) {
     used.add(p); return p;
   }
 }
-const SAY = { cover: ["気になる！", "知りたい！", "チェック！"], point: ["なるほど！", "ここ大事！", "いいね！", "安心だね！", "うれしい！", "知ってた？"], check: ["要チェック！"], end: ["登録してね！", "待ってるよ！"] };
+const SAY = { cover: ["気になる！", "知りたい！", "チェック！", "見てみて！", "なるほど？"], point: ["なるほど！", "ここ大事！", "いいね！", "安心だね！", "うれしい！", "知ってた？"], check: ["要チェック！"], end: ["登録してね！", "待ってるよ！"] };
 
 /* ---------- テキスト ---------- */
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -117,7 +125,7 @@ function css(T) {
 @font-face{font-family:R;font-weight:500;src:url(${fileUrl(path.join(FONT, "MPLUSRounded1c-Medium.ttf"))})}
 :root{--g1:#1E7A4A;--g2:#22A05A;--ink:${T.ink};--hl:${T.hl};--pop:${T.pop};--em:${T.em};--wash:${T.wash};--wash2:${T.wash2}}
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:1080px;height:1350px;background:linear-gradient(165deg,#FFFFFF 0%,#F4FBF6 45%,#E3F5EA 100%);color:var(--ink);font-family:R,"Noto Sans CJK JP",sans-serif;position:relative;overflow:hidden}
+body{width:1080px;height:1350px;background:linear-gradient(165deg,${T.bg[0]} 0%,${T.bg[1]} 45%,${T.bg[2]} 100%);color:var(--ink);font-family:R,"Noto Sans CJK JP",sans-serif;position:relative;overflow:hidden}
 .d{position:absolute;line-height:0;z-index:1}
 .z{position:absolute;z-index:3}
 .col{position:absolute;z-index:3;display:flex;flex-direction:column}
@@ -132,6 +140,7 @@ small{font-size:.62em}
 .box{background:rgba(255,255,255,.88);border-radius:40px;box-shadow:0 10px 30px rgba(30,120,74,.10)}
 .sub{font-weight:900;font-size:76px;line-height:1.22;padding:28px 38px;color:var(--g1)}
 .rows .r{font-weight:700;font-size:40px;line-height:1.45;padding:16px 4px;border-bottom:4px dotted #A9D9BC;word-break:keep-all;overflow-wrap:anywhere}
+.tag{display:inline-block;background:var(--g1);color:#fff;font-weight:900;font-size:46px;padding:14px 40px;border-radius:999px;box-shadow:0 8px 18px rgba(30,122,74,.25);transform:rotate(-3deg)}
 .rows .r:last-child{border-bottom:0}
 .rows.sm .r{font-size:35px;padding:12px 4px}
 .rows em{color:var(--em)}
@@ -174,16 +183,55 @@ function slideHTML(s, i, n, seed, T, pose) {
   const chara = (side, off, bottom, h) => { over += `<img class="chara" style="${side}:${off}px;bottom:${bottom}px;height:${h}px" src="${img(pose)}">`; return 1350 - bottom - h; };
   if (type === "cover") {
     const size = fitSize(s.title, 900, 150, 96);
-    bg += burst(50, 50, 120, -20) + burst(880, 120 + r() * 30, 140, 20) + arrow(540, 860, 420, -6) + star(470, 990 + r() * 40, 60) + star(1010, 760, 46);
-    body += `<div class="col" style="left:44px;top:120px;width:1000px">
-      <div class="big" style="font-size:${size}px">${bigLines(s.title)}</div>
-      ${s.sub ? `<div class="box sub" style="margin-top:44px;align-self:flex-start">${bigLines("~" + s.sub)}</div>` : ""}
-      ${s.lead ? `<div style="margin-top:${s.sub ? 26 : 40}px;width:${s.sub ? 540 : 520}px">${rowsHTML(s.lead, s.sub ? "sm" : "")}</div>` : ""}</div>`;
-    // タイトルの下にキャラと吹き出しが収まるように大きさを決める
-    const titleBottom = 120 + size * 1.18 * String(s.title).split("\n").length;
-    const ch = Math.max(500, Math.min(s.sub ? 640 : 720, 1350 - 150 - (titleBottom + 150)));
-    const top = chara("right", -10 + r() * 30, 150, ch);
-    over += cloud(say, 790, Math.max(top - 150, titleBottom + 10), 270, 50, "bl", -5);
+    const nl = String(s.title).split("\n").length;
+    const L = COVER_LAYOUT;
+    const leadHTML = (w, cls) => s.lead ? `<div class="box" style="width:${w}px;padding:6px 30px">${rowsHTML(s.lead, cls)}</div>` : "";
+    if (L === 1) {
+      // 左右反転：タイトル右寄せ、はぐるん左
+      bg += burst(900, 40, 120, 20) + burst(60, 160 + r() * 30, 130, -20) + arrow(120, 880, 380, -40) + star(560, 1000 + r() * 40, 60) + star(40, 760, 46);
+      body += `<div class="col" style="right:44px;top:120px;width:1000px;align-items:flex-end;text-align:right">
+        <div class="big" style="font-size:${size}px">${bigLines(s.title)}</div>
+        ${s.sub ? `<div class="box sub" style="margin-top:36px;${s.lead ? "font-size:62px;padding:20px 32px" : ""}">${bigLines("~" + s.sub)}</div>` : ""}
+        ${s.lead ? `<div style="margin-top:18px;width:540px;text-align:left">${rowsHTML(s.lead, s.sub ? "sm" : "")}</div>` : ""}</div>`;
+      const titleBottom = 120 + size * 1.18 * nl;
+      const ch = Math.max(480, Math.min(s.sub ? 600 : 680, 1350 - 260 - (titleBottom + 150)));
+      const top = chara("left", -20 + r() * 30, 250, ch);
+      over += cloud(say, 40, Math.max(top - 150, titleBottom + 10), 270, 50, "br", 5);
+    } else if (L === 2) {
+      // 上に色の帯。タイトルは帯の中で中央
+      const sz2 = Math.min(size, 118);
+      const tb = 100 + sz2 * 1.18 * nl + 50;
+      bg += `<svg class="d" style="left:0;top:0" width="1080" height="${tb + 60}" viewBox="0 0 1080 ${tb + 60}" preserveAspectRatio="none"><path d="M0 0 H1080 V${tb - 20} C800 ${tb + 50} 300 ${tb - 40} 0 ${tb + 30} Z" fill="${T.band}"/><path d="M0 ${tb + 30} C300 ${tb - 40} 800 ${tb + 50} 1080 ${tb - 20}" stroke="var(--pop)" stroke-width="10" fill="none" stroke-linecap="round"/></svg>` + star(70, 60, 60, "#fff") + star(980, tb - 120, 50, "#fff") + burst(880, tb + 40, 120, 20) + star(500, 1040, 50);
+      body += `<div class="col" style="left:40px;top:100px;width:1000px;align-items:center;text-align:center"><div class="big" style="font-size:${sz2}px">${bigLines(s.title)}</div></div>`;
+      body += `<div class="col" style="right:44px;top:${tb + 50}px;width:560px;align-items:flex-end">
+        ${s.sub ? `<div class="box sub" style="font-size:58px;padding:18px 30px">${bigLines("~" + s.sub)}</div>` : ""}
+        <div style="margin-top:18px">${leadHTML(540, "sm")}</div></div>`;
+      const ch = Math.max(460, Math.min(640, 1350 - 200 - (tb + 140)));
+      const top = chara("left", 10 + r() * 30, 200, ch);
+      over += cloud(say, 40, Math.max(top - 140, tb + 10), 260, 48, "br", 5);
+    } else if (L === 3) {
+      // タグ＋中央タイトル、下に説明とはぐるん
+      bg += burst(40, 180, 120, -20) + burst(900, 180, 130, 20) + arrow(560, 940, 360, -6) + star(480, 1010, 56) + star(1000, 820, 44);
+      body += `<div class="col" style="left:40px;top:90px;width:1000px;align-items:center;text-align:center">
+        ${s.sub ? `<div class="tag">${esc(String(s.sub).replace(/\n/g, ""))}</div>` : ""}
+        <div class="big" style="font-size:${Math.min(size, 136)}px;margin-top:${s.sub ? 40 : 30}px">${bigLines(s.title)}</div></div>`;
+      const titleBottom = 90 + (s.sub ? 120 : 30) + Math.min(size, 136) * 1.18 * nl;
+      body += `<div class="col" style="left:44px;top:${titleBottom + 60}px;width:540px">${leadHTML(540, "sm")}</div>`;
+      const ch = Math.max(460, Math.min(640, 1350 - 150 - (titleBottom + 140)));
+      const top = chara("right", -20 + r() * 30, 150, ch);
+      over += cloud(say, 800, Math.max(top - 140, titleBottom + 10), 250, 46, "bl", -5);
+    } else {
+      bg += burst(50, 50, 120, -20) + burst(880, 120 + r() * 30, 140, 20) + arrow(540, 860, 420, -6) + star(470, 990 + r() * 40, 60) + star(1010, 760, 46);
+      body += `<div class="col" style="left:44px;top:120px;width:1000px">
+        <div class="big" style="font-size:${size}px">${bigLines(s.title)}</div>
+        ${s.sub ? `<div class="box sub" style="margin-top:36px;align-self:flex-start;${s.lead ? "font-size:62px;padding:20px 32px" : ""}">${bigLines("~" + s.sub)}</div>` : ""}
+        ${s.lead ? `<div style="margin-top:${s.sub ? 18 : 40}px;width:${s.sub ? 540 : 520}px">${rowsHTML(s.lead, s.sub ? "sm" : "")}</div>` : ""}</div>`;
+      // タイトルの下にキャラと吹き出しが収まるように大きさを決める
+      const titleBottom = 120 + size * 1.18 * nl;
+      const ch = Math.max(500, Math.min(s.sub ? 640 : 720, 1350 - 150 - (titleBottom + 150)));
+      const top = chara("right", -10 + r() * 30, 150, ch);
+      over += cloud(say, 790, Math.max(top - 150, titleBottom + 10), 270, 50, "bl", -5);
+    }
     body += LOGO + SWIPE;
   } else if (type === "end") {
     const msg = s.message || "~歯科の仕事を、\nもっと**自由**に。";
@@ -240,9 +288,19 @@ function slideHTML(s, i, n, seed, T, pose) {
   const [, , inFile, outDir] = process.argv;
   const { slides } = JSON.parse(fs.readFileSync(inFile, "utf8"));
   fs.mkdirSync(outDir, { recursive: true });
-  const themeName = pickTheme(slides);
-  const T = THEMES[themeName];
+  let themeName = pickTheme(slides);
   const seed = (slides[0] && slides[0].title) || inFile;
+  // 出力先の日付（posts/YYYYMMDD-…）から順番に回す。Hagurumaは2日おきなので2日で1つ進める
+  const m = String(outDir).match(/(20\d{6})/);
+  const d = m ? Math.floor(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5 / 2) : hash(seed);
+  if (m) themeName = THEME_ORDER[d % THEME_ORDER.length];
+  COVER_LAYOUT = slides[0] && slides[0].layout != null ? +slides[0].layout : d % 4;
+  if (slides[0] && !slides[0].chara) {
+    const worry = WORRY.test([slides[0].title, slides[0].lead].join(""));
+    slides[0] = { ...slides[0], chara: worry ? ["komari", "bikkuri"][d % 2] : COVER_POSES[d % COVER_POSES.length] };
+  }
+  if (slides[0] && !slides[0].say) slides[0] = { ...slides[0], say: SAY.cover[d % SAY.cover.length] };
+  const T = THEMES[themeName];
   const poses = posePlan(slides, seed);
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--allow-file-access-from-files"] });
   const p = await b.newPage({ viewport: { width: 1080, height: 1350 } });
