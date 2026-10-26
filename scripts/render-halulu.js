@@ -126,7 +126,9 @@ b{color:${T.deep};font-weight:700}
 `;
 }
 
-let COVER_LAYOUT = 0;
+let COVER_LAYOUT = 0, COVER_POSE = null;
+const COVER_POSES = ["bikkuri", "uttori", "nikkori", "genki", "wink", "waai", "suwari", "jump", "nikoniko", "wink-heart"];
+const WORRY_POSES = ["shonbori", "bikkuri", "suwari", "nikoniko"];
 function slideHTML(s, i, n, seed, T) {
   const K = decoKit(T);
   const LOGO = `<div class="logo">${K.SPROUT(64)}<span>Halulu<span class="jp">渋谷歯科</span></span><svg class="logoline" width="460" height="40" viewBox="0 0 460 40"><path d="M4 20 C120 8 300 6 456 30" stroke="#D9B3A8" stroke-width="2.5" fill="none"/></svg><span class="lheart">${K.HEART(26)}</span></div>`;
@@ -136,7 +138,8 @@ function slideHTML(s, i, n, seed, T) {
   if (type === "cover") {
     // 表紙は4つの配置を順番に使う（プロフィールで並んだときに同じ投稿に見えないように。2026-10-26 本人指摘）
     const L = s.layout != null ? Number(s.layout) % 4 : COVER_LAYOUT;
-    const charaSrc = CH.dataUri(CH.pick("cover", seed, 0, s.chara));
+    // はるみちゃんも投稿ごとに順番に変える（2026-10-26 本人希望。原稿の chara 指定より優先）
+    const charaSrc = CH.dataUri(COVER_POSE || CH.pick("cover", seed, 0, s.chara));
     const sayHTML = (pos, fs = 36) => s.say ? `<div class="say" style="${pos};font-size:${fs}px;padding:26px 34px">${esc(s.say).replace(/\n/g, "<br>")}</div>` : `<div class="hb" style="${pos}">${K.HEART(56)}</div>`;
     if (L === 1) {
       // 中央：大きな水彩の円にキャラ、タイトルは下に中央ぞろえ
@@ -234,7 +237,13 @@ function slideHTML(s, i, n, seed, T) {
   const themeName = pickTheme(slides);
   // 表紙の配置：出力先の日付（posts/YYYYMMDD-…）から順番に回す。Haluluは2日おきなので2日で1つ進める
   const m = String(outDir).match(/(20\d{6})/);
-  if (m) { const d = Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5; COVER_LAYOUT = Math.floor(d / 2) % 4; }
+  const worry = /痛|しみ|腫れ|出血|血が|口臭|におい|不安|悩|心配|食いしばり|歯ぎしり|知覚過敏|歯周病|むし歯|虫歯/.test([slides[0] && slides[0].title, slides[0] && slides[0].lead].join(""));
+  if (m) {
+    const d = Math.floor(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5 / 2);
+    COVER_LAYOUT = d % 4;
+    const list = (worry ? WORRY_POSES : COVER_POSES).filter(n => CH.NAMES.includes(n));
+    COVER_POSE = list[d % list.length];
+  }
   else COVER_LAYOUT = [...String(slides[0] && slides[0].title)].reduce((a, c) => a + c.codePointAt(0), 0) % 4;
   const T = THEMES[themeName];
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
