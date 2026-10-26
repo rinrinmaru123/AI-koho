@@ -177,6 +177,114 @@ def music(seconds, seed):
     return (out * 32767).astype(np.int16), sr
 
 
+def music_brand(seconds, seed, brand):
+    """ブランドごとのBGM（自作・2026-10-27 本人希望でHaluluとHagurumaを分ける）
+    halulu  ：ウクレレ風の弦＋グロッケン、ゆったり跳ねるリズム（ハンドクラップ・シェイカー）。やさしく、かわいい
+    haguruma：ピコピコした電子音のアルペジオ＋うねるベース、4つ打ち。ロボットのはぐるんらしく元気に"""
+    sr = 44100
+    rng = np.random.default_rng(int(hashlib.md5((seed + brand).encode()).hexdigest()[:8], 16))
+    total = int(seconds * sr) + sr
+    out = np.zeros(total)
+    noise = rng.standard_normal(int(0.5 * sr))
+    hz = lambda base, n: base * 2 ** (n / 12)
+
+    def add(sig, start):
+        st = int(start * sr)
+        if st >= total or st < 0:
+            return
+        e = min(total, st + len(sig)); out[st:e] += sig[:e - st]
+
+    def tv(d):
+        return np.arange(int(d * sr)) / sr
+
+    def kick(amp=0.9):
+        tt = tv(0.25); f = 120 * np.exp(-tt * 18) + 45
+        return amp * np.exp(-tt * 14) * np.sin(2 * np.pi * np.cumsum(f) / sr)
+
+    def clap(amp=0.3):
+        tt = tv(0.2); n = noise[:len(tt)]
+        env = sum(np.exp(-np.clip(tt - d, 0, None) * 60) * (tt >= d) for d in (0, 0.012, 0.024)) / 3 + np.exp(-tt * 18) * 0.6
+        return amp * env * np.diff(np.concatenate([[0], n]))
+
+    def shaker(amp=0.06):
+        tt = tv(0.07); n = noise[100:100 + len(tt)]
+        return amp * np.sin(np.pi * tt / tt[-1]) * np.diff(np.concatenate([[0], n]))
+
+    if brand == "halulu":
+        base = 261.63 * 2 ** ([0, 2, 5, 7][rng.integers(4)] / 12)
+        prog = [[0, 4, 7], [9, 12, 16], [5, 9, 12], [7, 11, 14]]          # I vi IV V（やさしい定番）
+        bpm = 100 + int(rng.integers(0, 6)); beat = 60 / bpm; sw = beat * 0.58   # 跳ねる8分
+        def uke(f, d, a):   # ウクレレ風：高い倍音ほど早く消える
+            tt = tv(d); env = 1 - np.exp(-tt * 500)
+            return a * env * sum((0.9 ** k) * np.exp(-tt * (5 + 6 * k)) * np.sin(2 * np.pi * f * (k + 1) * tt) for k in range(5))
+        def glock(f, d, a):
+            tt = tv(d); env = np.exp(-tt * 4) * (1 - np.exp(-tt * 300))
+            return a * env * (np.sin(2 * np.pi * f * tt) + 0.25 * np.sin(2 * np.pi * f * 2.76 * tt))
+        mel = [[2, 1, 0, 1], [2, 2, 1, 0]]
+        t, bar = 0.0, 0
+        while t < seconds:
+            ch = prog[bar % 4]
+            # ウクレレのストローク（ジャン・ジャジャ・ジャン）
+            for pos in (0, sw, beat * 1.5, beat * 2, beat * 2 + sw, beat * 3.5):
+                for j, n_ in enumerate(ch + [ch[0] + 12]):
+                    add(uke(hz(base, n_), 0.6, 0.05), t + pos + j * 0.008)
+            add(uke(hz(base, ch[0] - 12), beat * 1.8, 0.16), t); add(uke(hz(base, ch[2] - 12), beat * 1.8, 0.12), t + beat * 2)
+            if bar > 0:
+                add(kick(0.45), t); add(kick(0.35), t + beat * 2 + sw)
+                add(clap(0.11), t + beat); add(clap(0.11), t + beat * 3)
+            for k in range(4):
+                add(shaker(0.022), t + k * beat); add(shaker(0.014), t + k * beat + sw)
+            # グロッケンのメロディ
+            for k, idx in enumerate(mel[bar % 2]):
+                if rng.random() < 0.85:
+                    add(glock(hz(base, ch[idx] + 24), beat * 1.2, 0.07), t + k * beat + (sw if k % 2 else 0))
+            t += beat * 4; bar += 1
+        # ふんわり残響
+        for d, g in ((0.09, 0.22), (0.19, 0.12)):
+            k = int(d * sr); out[k:] += g * out[:-k]
+    else:
+        base = 220.0 * 2 ** ([0, 2, 3, 5, 7][rng.integers(5)] / 12)
+        prog = [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]]            # i VI III VII（前向きな短調）
+        bpm = 124 + int(rng.integers(0, 6)); beat = 60 / bpm; s16 = beat / 4
+        def sq(f, d, a, dec=10):   # ピコピコの矩形波（倍音を足して作る）
+            tt = tv(d); env = np.exp(-tt * dec) * (1 - np.exp(-tt * 800)); ph = 2 * np.pi * f * tt
+            return a * env * sum(np.sin((2 * k + 1) * ph) / (2 * k + 1) for k in range(6))
+        def saw(f, d, a):
+            tt = tv(d); env = np.exp(-tt * 6) * (1 - np.exp(-tt * 600)); ph = 2 * np.pi * f * tt
+            return a * env * sum(np.sin(k * ph) / k for k in range(1, 8))
+        def blip(f, a):   # ロボットっぽい上昇音
+            tt = tv(0.12); ff = f * (1 + 2 * tt / 0.12)
+            return a * np.exp(-tt * 20) * np.sign(np.sin(2 * np.pi * np.cumsum(ff) / sr))
+        arp = [0, 1, 2, 1, 2, 3, 2, 1]
+        t, bar = 0.0, 0
+        while t < seconds:
+            ch = prog[bar % 4]
+            for k in range(4):
+                if bar > 0 or k >= 2:
+                    add(kick(0.5), t + k * beat)
+                add(saw(hz(base, ch[0] - 12), beat * 0.45, 0.14), t + k * beat + beat / 2)   # 裏打ちベース
+                if k in (1, 3):
+                    add(clap(0.13), t + k * beat)
+                add(shaker(0.022), t + k * beat + beat / 2)
+            for k in range(16):   # 16分のアルペジオ
+                notes = ch + [ch[0] + 12]
+                add(sq(hz(base, notes[arp[k % 8]] + 12), s16 * 0.9, 0.10, 18), t + k * s16)
+            if bar % 2 == 1:
+                add(blip(hz(base, ch[2] + 24), 0.05), t + beat * 3.5)
+            # メロディ（2拍ごと）
+            for k in range(2):
+                if rng.random() < 0.8:
+                    add(sq(hz(base, ch[rng.integers(3)] + 24), beat * 1.4, 0.09, 4), t + k * beat * 2)
+            t += beat * 4; bar += 1
+    out = out[:int(seconds * sr)]
+    fade = int(1.0 * sr)
+    out[:int(0.05 * sr)] *= np.linspace(0, 1, int(0.05 * sr))
+    out[-fade:] *= np.linspace(1, 0, fade)
+    out = np.tanh(out * 1.2)
+    out = out / (np.abs(out).max() + 1e-9) * 0.6
+    return (out * 32767).astype(np.int16), sr
+
+
 def music_musicbox(seconds, seed):
     sr = 44100
     rng = np.random.default_rng(int(hashlib.md5(seed.encode()).hexdigest()[:8], 16))
@@ -400,7 +508,7 @@ def main():
     total_frames = sum(holds) + (len(pages) - 1) * nflip
     seconds = total_frames / FPS
     wav = dst + ".wav"
-    pcm, sr = music(seconds, seed)
+    pcm, sr = music_brand(seconds, seed, brand) if brand in ("halulu", "haguruma") else music(seconds, seed)
     if brand:
         mix = pcm.astype(np.float32) * 0.3   # 声の下でBGMを小さく
         pos = 0
