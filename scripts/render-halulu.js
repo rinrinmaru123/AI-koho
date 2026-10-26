@@ -95,6 +95,7 @@ body{width:1080px;height:1350px;background:${T.bg};color:#4A3030;font-family:"No
 .foot .page{font-family:"Noto Serif CJK JP",serif;font-size:40px;color:#5A3D3D}
 .foot .page small{font-size:28px}
 em{font-style:normal;color:${T.accent}}
+.ttl.white em{color:#FFF1A8}
 small{font-size:.66em}
 b{color:${T.deep};font-weight:700}
 .ttl{font-family:"Noto Serif CJK JP",serif;font-weight:900;line-height:1.28;color:#4A2A2A}
@@ -125,6 +126,7 @@ b{color:${T.deep};font-weight:700}
 `;
 }
 
+let COVER_LAYOUT = 0;
 function slideHTML(s, i, n, seed, T) {
   const K = decoKit(T);
   const LOGO = `<div class="logo">${K.SPROUT(64)}<span>Halulu<span class="jp">渋谷歯科</span></span><svg class="logoline" width="460" height="40" viewBox="0 0 460 40"><path d="M4 20 C120 8 300 6 456 30" stroke="#D9B3A8" stroke-width="2.5" fill="none"/></svg><span class="lheart">${K.HEART(26)}</span></div>`;
@@ -132,15 +134,56 @@ function slideHTML(s, i, n, seed, T) {
   const type = s.type || "point";
   let deco = K.BG, inner = "", over = "";
   if (type === "cover") {
+    // 表紙は4つの配置を順番に使う（プロフィールで並んだときに同じ投稿に見えないように。2026-10-26 本人指摘）
+    const L = s.layout != null ? Number(s.layout) % 4 : COVER_LAYOUT;
+    const charaSrc = CH.dataUri(CH.pick("cover", seed, 0, s.chara));
+    const sayHTML = (pos, fs = 36) => s.say ? `<div class="say" style="${pos};font-size:${fs}px;padding:26px 34px">${esc(s.say).replace(/\n/g, "<br>")}</div>` : `<div class="hb" style="${pos}">${K.HEART(56)}</div>`;
+    if (L === 1) {
+      // 中央：大きな水彩の円にキャラ、タイトルは下に中央ぞろえ
+      const size = fitSize(s.title, 900, 104, 80);
+      deco += `<div class="blob" style="width:760px;height:700px;left:160px;top:120px;background:radial-gradient(closest-side,${T.light},${T.blob2} 60%,transparent)"></div>` + K.BRANCH(true) + K.at(60, 200, K.FLOWER(110)) + K.at(140, 520, K.LEAF(90, 40)) + K.at(880, 560, K.LEAF(90, 220)) + K.at(820, 180, K.SPARK(70, 20));
+      over += `<img class="chara" style="left:50%;transform:translateX(-50%);top:130px;height:430px" src="${charaSrc}">`;
+      over += sayHTML("right:90px;top:170px");
+      inner = `<div class="wrap" style="align-items:center;text-align:center">${LOGO}
+        <div style="height:450px"></div>
+        <div class="ttl" style="font-size:${size}px;text-align:center">${titleLines(s.title)}</div>
+        ${s.lead ? `<div style="margin-top:28px;font-size:31px;line-height:1.7;color:#5A4444;max-width:820px">${rich(s.lead)}</div>` : ""}
+        <div class="pill" style="margin-top:34px;align-self:center">${K.SPROUT(46, "#FFFFFF")}スワイプして読む →</div>
+        ${FOOT}</div>`;
+    } else if (L === 2) {
+      // 帯：上半分をテーマ色で塗って白い大きなタイトル
+      const size = fitSize(s.title, 860, 128, 84);
+      deco += `<div style="position:absolute;left:0;top:0;width:1080px;height:760px;background:linear-gradient(160deg,${T.accent},${T.deep});border-radius:0 0 50% 50%/0 0 90px 90px;z-index:1"></div>` + K.at(40, 1040, K.FLOWER(90)) + K.at(110, 1120, K.LEAF(80, 300)) + K.at(900, 1180, K.FLOWER(70));
+      over += `<img class="chara" style="right:-40px;bottom:120px;height:470px" src="${charaSrc}">`;
+      over += sayHTML("right:330px;top:790px", 32);
+      inner = `<div class="wrap"><div class="logo" style="color:#fff">${K.SPROUT(64, "#FFFFFF")}<span>Halulu<span class="jp">渋谷歯科</span></span></div>
+        <div class="ttl white" style="margin-top:50px;font-size:${size}px;color:#fff;--em:#FFF1A8">${titleLines(s.title).replace(/class="brush"/g, 'class="brush" style="background:rgba(255,255,255,.28)"')}</div>
+        <div style="height:150px"></div>
+        ${s.lead ? `<div class="dbox" style="width:560px;font-size:30px;line-height:1.75"><span class="sp">${K.SPROUT(54)}</span>${rich(s.lead)}</div>` : ""}
+        <div class="pill" style="margin-top:40px">${K.SPROUT(46, "#FFFFFF")}スワイプして読む →</div>
+        ${FOOT}</div>`;
+    } else if (L === 3) {
+      // 左にキャラ、タイトルは右側に右ぞろえ
+      const size = fitSize(s.title, 620, 140, 88);
+      deco += K.BRANCH(true) + K.at(20, 160, K.FLOWER(120)) + K.at(120, 260, K.LEAF(100, 60)) + K.at(980, 1160, K.FLOWER(70)) + `<div class="blob" style="width:700px;height:760px;left:-200px;top:380px;background:radial-gradient(closest-side,${T.light},transparent)"></div>`;
+      over += `<img class="chara" style="left:-80px;bottom:150px;height:580px" src="${charaSrc}">`;
+      over += sayHTML("left:300px;top:720px", 32);
+      inner = `<div class="wrap" style="align-items:flex-end;text-align:right">${LOGO}
+        <div class="ttl" style="margin-top:70px;font-size:${size}px;text-align:right">${titleLines(s.title)}</div>
+        ${s.lead ? `<div class="dbox" style="margin-top:44px;width:500px;font-size:30px;line-height:1.75;text-align:left"><span class="sp">${K.SPROUT(54)}</span>${rich(s.lead)}</div>` : ""}
+        <div class="pill" style="margin-top:44px;align-self:flex-end">${K.SPROUT(46, "#FFFFFF")}スワイプして読む →</div>
+        <div style="align-self:stretch;margin-top:auto">${FOOT}</div></div>`;
+    } else {
     const size = fitSize(s.title, 600, 150, 92);
     deco += K.BRANCH(false) + K.at(590, 290, K.SPARK(70, 10)) + K.at(560, 380, K.LEAF(100, 120)) + K.at(990, 470, K.LEAF(70, 210)) + K.at(10, 1000, K.FLOWER(90)) + K.at(70, 1090, K.LEAF(80, 300)) + K.at(910, 1190, K.FLOWER(60));
-    over += `<img class="chara" style="right:-90px;bottom:96px;height:${s.lead ? 620 : 700}px" src="${CH.dataUri(CH.pick("cover", seed, 0, s.chara))}">`;
+    over += `<img class="chara" style="right:-90px;bottom:96px;height:${s.lead ? 620 : 700}px" src="${charaSrc}">`;
     over += s.say ? `<div class="say" style="right:30px;top:${s.lead ? 560 : 480}px;font-size:36px;padding:26px 34px">${esc(s.say).replace(/\n/g, "<br>")}</div>` : `<div class="hb" style="right:40px;top:${s.lead ? 600 : 520}px">${K.HEART(56)}</div>`;
     inner = `<div class="wrap">${LOGO}
       <div class="ttl" style="margin-top:56px;font-size:${size}px">${titleLines(s.title)}</div>
       ${s.lead ? `<div class="dbox" style="margin-top:50px;width:540px;font-size:31px;line-height:1.75"><span class="sp">${K.SPROUT(54)}</span>${rich(s.lead)}</div>` : ""}
       <div class="pill" style="margin-top:56px">${K.SPROUT(46, "#FFFFFF")}スワイプして読む →</div>
       ${FOOT}</div>`;
+    }
   } else if (type === "end") {
     deco += K.BRANCH(false) + K.at(470, 270, K.LEAF(130, 120)) + K.at(600, 230, K.SPARK(70, 20)) + K.at(10, 880, K.FLOWER(90)) + K.at(70, 960, K.LEAF(90, 300)) + K.at(560, 1000, K.PETAL(50, 40)) + K.at(980, 1220, K.LEAF(60, 200));
     over += `<img class="chara" style="right:-110px;bottom:330px;height:480px" src="${CH.dataUri(CH.pick("end", seed, 0, s.chara))}">`;
@@ -189,6 +232,10 @@ function slideHTML(s, i, n, seed, T) {
   const { slides } = JSON.parse(fs.readFileSync(inFile, "utf8"));
   fs.mkdirSync(outDir, { recursive: true });
   const themeName = pickTheme(slides);
+  // 表紙の配置：出力先の日付（posts/YYYYMMDD-…）から順番に回す。Haluluは2日おきなので2日で1つ進める
+  const m = String(outDir).match(/(20\d{6})/);
+  if (m) { const d = Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5; COVER_LAYOUT = Math.floor(d / 2) % 4; }
+  else COVER_LAYOUT = [...String(slides[0] && slides[0].title)].reduce((a, c) => a + c.codePointAt(0), 0) % 4;
   const T = THEMES[themeName];
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
   const p = await b.newPage({ viewport: { width: 1080, height: 1350 } });
