@@ -15,6 +15,8 @@ const THEMES = {
   lavender: { accent: "#9A72C9", deep: "#8259B5", light: "#EFE6F8", line: "#D6C3EC", bg: "#FAF7FC", blob2: "#F1E8F8", leaf: "#A9CDA6", flower: "#F4ECFB", fcenter: "#F2C66E", petal: "#E3D2F3" },
   peach:    { accent: "#E07B52", deep: "#C9653D", light: "#FDE7DA", line: "#F5C6AE", bg: "#FFF8F3", blob2: "#FCE3D3", leaf: "#A7CB95", flower: "#FFFFFF", fcenter: "#F4B860", petal: "#F9D2BD" },
   sky:      { accent: "#4E8FCB", deep: "#3A78B3", light: "#E1EEFA", line: "#B7D3EE", bg: "#F6FAFD", blob2: "#E5F0FA", leaf: "#9CCBA8", flower: "#FFFFFF", fcenter: "#F3CE6A", petal: "#C9DFF4" },
+  lemon:    { accent: "#C99A1E", deep: "#A97F12", light: "#FBF1CF", line: "#EED891", bg: "#FFFCF2", blob2: "#FAF0D2", leaf: "#A6C98F", flower: "#FFFFFF", fcenter: "#F2B84B", petal: "#F6E3A6" },
+  coral:    { accent: "#E0676A", deep: "#C7504F", light: "#FCE0DF", line: "#F3B9B7", bg: "#FFF7F5", blob2: "#FBE1DD", leaf: "#9FC99A", flower: "#FFFFFF", fcenter: "#F4BE5C", petal: "#F6C4C2" },
 };
 const RULES = [
   ["peach", /キャンペーン|特別価格|お知らせ|期間限定|月\d+日まで|総額/],
@@ -234,7 +236,7 @@ function slideHTML(s, i, n, seed, T) {
   const [, , inFile, outDir] = process.argv;
   const { slides } = JSON.parse(fs.readFileSync(inFile, "utf8"));
   fs.mkdirSync(outDir, { recursive: true });
-  const themeName = pickTheme(slides);
+  let themeName = pickTheme(slides);
   // 表紙の配置：出力先の日付（posts/YYYYMMDD-…）から順番に回す。Haluluは2日おきなので2日で1つ進める
   const m = String(outDir).match(/(20\d{6})/);
   const worry = /痛|しみ|腫れ|出血|血が|口臭|におい|不安|悩|心配|食いしばり|歯ぎしり|知覚過敏|歯周病|むし歯|虫歯/.test([slides[0] && slides[0].title, slides[0] && slides[0].lead].join(""));
@@ -243,6 +245,9 @@ function slideHTML(s, i, n, seed, T) {
     COVER_LAYOUT = d % 4;
     const list = (worry ? WORRY_POSES : COVER_POSES).filter(n => CH.NAMES.includes(n));
     COVER_POSE = list[d % list.length];
+    // 色も投稿ごとに順番に変える（2026-10-26 本人希望。原稿の theme より優先）
+    const ORDER = ["mint", "coral", "sky", "lemon", "lavender", "sakura", "peach"];
+    themeName = ORDER[d % ORDER.length];
   }
   else COVER_LAYOUT = [...String(slides[0] && slides[0].title)].reduce((a, c) => a + c.codePointAt(0), 0) % 4;
   const T = THEMES[themeName];
