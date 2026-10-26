@@ -240,6 +240,91 @@ ENDCARD = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "ha
 ENDCARD_VOICE = {"halulu": os.path.join(os.path.dirname(__file__), "..", "assets", "halulu-endcard-voice.wav")}
 
 
+# ---------- 最後のロゴに動きをつける（2026-10-27 本人希望「最後のHagurumaやHalulu、動きが欲しい」） ----------
+def _layer(img, box, keep=None):
+    """白背景のロゴから box(x0,y0,x1,y1) を透明背景で切り出す。keep(r,g,b配列)->bool で残す画素を選べる"""
+    a = np.asarray(img.crop(box).convert("RGB")).astype(np.float32)
+    al = ((255 - a).max(2) / 255.0).clip(0, 1)
+    if keep is not None:
+        al = al * keep(a)
+    rgb = np.where(al[..., None] > 0.01, (a - 255 * (1 - al[..., None])) / np.maximum(al[..., None], 1e-3), 255).clip(0, 255)
+    return Image.fromarray(np.dstack([rgb, al * 255]).astype(np.uint8), "RGBA")
+
+
+def _back(t):  # 0→1 で少し行き過ぎて戻る
+    t = min(max(t, 0.0), 1.0); c = 1.9
+    return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2
+
+
+def _ease(t):
+    t = min(max(t, 0.0), 1.0); return t * t * (3 - 2 * t)
+
+
+def _put(frame, lay, cx, cy, scale=1.0, rot=0.0, alpha=1.0, anchor=(0.5, 0.5)):
+    if scale <= 0.01 or alpha <= 0.01:
+        return
+    w, h = lay.size
+    im = lay.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.BICUBIC) if abs(scale - 1) > 1e-3 else lay
+    if rot:
+        # anchor を中心に回す：anchor が中心に来るよう余白を足してから回す
+        ax, ay = int(im.width * anchor[0]), int(im.height * anchor[1])
+        R = int(math.hypot(max(ax, im.width - ax), max(ay, im.height - ay))) + 2
+        pad = Image.new("RGBA", (2 * R, 2 * R), (0, 0, 0, 0)); pad.paste(im, (R - ax, R - ay))
+        im = pad.rotate(rot, resample=Image.BICUBIC); ox, oy = R, R
+    else:
+        ox, oy = int(im.width * anchor[0]), int(im.height * anchor[1])
+    if alpha < 1:
+        a = im.getchannel("A").point(lambda v: int(v * alpha)); im = im.copy(); im.putalpha(a)
+    frame.paste(im, (int(cx - ox), int(cy - oy)), im)
+
+
+def endcard_anim(brand, path):
+    """最後のロゴの動き。戻り値: f(秒) -> 1080x1920 のRGB画像"""
+    src = Image.open(path).convert("RGB").resize((W, H))
+    white = Image.new("RGB", (W, H), (255, 255, 255))
+    if brand == "haguruma":
+        word = _layer(src, (150, 640, 930, 815))
+        gx0, gy0, gx1, gy1 = 330, 850, 750, 1272
+        gear = _layer(src, (gx0, gy0, gx1, gy1)); cx, cy = 539.5, 1060.5
+        yy, xx = np.mgrid[gy0:gy1, gx0:gx1]; rr = np.hypot(xx - cx, yy - cy)
+        ga = np.asarray(gear).copy(); outer = ga.copy(); inner = ga.copy()
+        outer[..., 3] = np.where(rr > 124, ga[..., 3], 0); inner[..., 3] = np.where(rr <= 124, ga[..., 3], 0)
+        outer = Image.fromarray(outer, "RGBA"); inner = Image.fromarray(inner, "RGBA")
+        ac = ((cx - gx0) / gear.width, (cy - gy0) / gear.height)
+        def f(t):
+            fr = white.copy()
+            sc = _back(t / 0.55)
+            spin = -360 * (1 - _ease(t / 0.7)) - 40 * t   # 回りながら出てきて、そのあともゆっくり回り続ける
+            _put(fr, outer, cx, cy, sc, spin, anchor=ac)
+            _put(fr, inner, cx, cy, _back((t - 0.15) / 0.5), 0, anchor=ac)
+            k = (t - 0.35) / 0.45
+            _put(fr, word, 540, 727 - 120 * (1 - _back(k)), 1.0, 0, alpha=_ease(k * 2))
+            return fr
+        return f
+    # halulu
+    tag = _layer(src, (180, 470, 900, 560))
+    green = lambda a: (a[..., 1] > a[..., 0]).astype(np.float32)   # 枠内は ピンクの歯 と 緑の双葉 だけ
+    notgreen = lambda a: (a[..., 0] > a[..., 1] + 4).astype(np.float32)   # ピンク（双葉のふちの薄い色は入れない）
+    sx0, sy0, sx1, sy1 = 360, 590, 710, 1145
+    sprout = _layer(src, (sx0, sy0, sx1, sy1), green)
+    tooth = _layer(src, (sx0, sy0, sx1, sy1), notgreen)
+    sa = np.asarray(sprout)[..., 3]; ys, xs = np.where(sa > 40)
+    base = (float(np.median(xs[ys > ys.max() - 6])) if len(ys) else 175.0, float(ys.max()) if len(ys) else 200.0)
+    ab = (base[0] / sprout.width, base[1] / sprout.height)
+    name = _layer(src, (230, 1160, 860, 1320)); kanji = _layer(src, (220, 1325, 870, 1448))
+    def f(t):
+        fr = white.copy()
+        _put(fr, tooth, (sx0 + sx1) / 2, sy1, _back(t / 0.5), 0, anchor=(0.5, 1.0))   # 歯がぽよんと出る
+        g = _back((t - 0.3) / 0.45)
+        sway = 7 * math.sin((t - 0.3) * 3.2) * _ease((t - 0.6) / 0.4)   # 双葉がのびて、そよそよ揺れる
+        _put(fr, sprout, sx0 + base[0], sy0 + base[1], g, sway, anchor=ab)
+        k1 = (t - 0.45) / 0.4; _put(fr, name, 545, 1240 + 60 * (1 - _ease(k1)), 1.0, 0, alpha=_ease(k1))
+        k2 = (t - 0.6) / 0.4; _put(fr, kanji, 545, 1386 + 60 * (1 - _ease(k2)), 1.0, 0, alpha=_ease(k2))
+        k3 = (t - 0.85) / 0.45; _put(fr, tag, 540, 515 - 30 * (1 - _ease(k3)), 1.0, 0, alpha=_ease(k3))
+        return fr
+    return f
+
+
 # 読み間違いの直し（本人指定）
 READINGS = {"少し": "すこし"}
 # 最後の画像ページ（type end）で読む言葉。画像の「歯を、育てよう。」と同じ（本人希望 2026-10-24）
@@ -300,9 +385,10 @@ def main():
                 texts[i] = END_LINE[brand]
             elif s.get("say"):
                 texts[i] = plain(s.get("say"))
+    anim = None
     if brand and brand in ENDCARD and os.path.exists(ENDCARD[brand]):
-        ec = Image.open(ENDCARD[brand]).convert("RGB").resize((W, H))
-        pages.append(ec); texts.append(VOICES[brand]["name"])
+        anim = endcard_anim(brand, ENDCARD[brand])
+        pages.append(anim(0.0)); texts.append(VOICES[brand]["name"])
     voices = speak(texts, brand) if brand else [np.zeros(0, dtype=np.int16)] * len(pages)
     # 最後のロゴの「はるる渋谷歯科」は本人が用意した録音を使う（2026-10-24 本人指定。24kHz mono wav）
     if brand and ENDCARD_VOICE.get(brand) and os.path.exists(ENDCARD_VOICE[brand]) and brand in ENDCARD:
@@ -333,6 +419,10 @@ def main():
                           "-i", wav, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "20",
                           "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", dst], stdin=subprocess.PIPE)
     for i, pg in enumerate(pages):
+        if anim is not None and i == len(pages) - 1:
+            for k in range(holds[i]):
+                p.stdin.write(anim(k / FPS).tobytes())
+            continue
         raw = pg.tobytes()
         for _ in range(holds[i]):
             p.stdin.write(raw)
