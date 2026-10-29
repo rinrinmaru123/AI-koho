@@ -95,7 +95,8 @@ function bigLines(s) {
   }).join("<br>");
 }
 // 本文：1行ずつ点線で区切る（「。」で改行も）
-const rows = s => String(s || "").split(/\n/).flatMap(l => l.match(/[^。！？]+[。！？]?/g) || [l]).map(t => t.trim()).filter(Boolean);
+// 「**…。**」のように句点が強調の中にあると文の区切りで記号が割れるので、句点を外に出してから分ける（2026-10-29）
+const rows = s => String(s || "").replace(/([。！？])\*\*/g, "**$1").split(/\n/).flatMap(l => l.match(/[^。！？]+[。！？]?/g) || [l]).map(t => t.trim()).filter(Boolean);
 const rowsHTML = (s, cls = "") => `<div class="rows ${cls}">${rows(s).map(t => `<div class="r">${inl(t)}</div>`).join("")}</div>`;
 
 /* ---------- 飾り ---------- */
