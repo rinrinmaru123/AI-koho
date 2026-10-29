@@ -390,6 +390,13 @@ def endcard_anim(brand, path):
     """最後のロゴの動き。戻り値: f(秒) -> 1080x1920 のRGB画像"""
     src = Image.open(path).convert("RGB").resize((W, H))
     white = Image.new("RGB", (W, H), (255, 255, 255))
+    # 音声のクレジットを動画の中にも小さく入れる（2026-10-29：Threadsのキャプションからは外すため）
+    try:
+        from PIL import ImageFont
+        fnt = ImageFont.truetype(os.path.join(os.path.dirname(__file__), "..", "assets", "fonts", "MPLUSRounded1c-Medium.ttf"), 34)
+        ImageDraw.Draw(white).text((W // 2, H - 150), CREDIT.get(brand, ""), fill=(150, 150, 150), font=fnt, anchor="mm")
+    except Exception:
+        pass
     if brand == "haguruma":
         word = _layer(src, (150, 640, 930, 815))
         gx0, gy0, gx1, gy1 = 330, 850, 750, 1272
@@ -431,6 +438,9 @@ def endcard_anim(brand, path):
         k3 = (t - 0.85) / 0.45; _put(fr, tag, 540, 515 - 30 * (1 - _ease(k3)), 1.0, 0, alpha=_ease(k3))
         return fr
     return f
+
+
+CREDIT = {"halulu": "音声：VOICEVOX:春歌ナナ", "haguruma": "音声：VOICEVOX:WhiteCUL"}
 
 
 # 読み間違いの直し（本人指定）

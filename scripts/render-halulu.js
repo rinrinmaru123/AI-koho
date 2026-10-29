@@ -118,7 +118,7 @@ b{color:${T.deep};font-weight:700}
 .row{display:flex;align-items:center;gap:22px;padding:26px 0;border-bottom:2px dashed ${T.line}}
 .row:last-child{border-bottom:0}
 .row .ic{width:96px;height:96px;flex:0 0 96px;border-radius:50%;background:${T.light};display:flex;align-items:center;justify-content:center}
-.row .lb{flex:0 0 200px;text-align:center;background:${T.light};border-radius:999px;padding:14px 10px;font-family:"Noto Serif CJK JP",serif;font-weight:700;font-size:34px;color:#5A3D3D;letter-spacing:.08em}
+.row .lb{flex:0 0 200px;text-align:center;background:${T.light};border-radius:999px;padding:14px 10px;font-family:"Noto Serif CJK JP",serif;font-weight:700;font-size:32px;color:#5A3D3D;letter-spacing:.02em;white-space:nowrap}
 .row .vl{flex:1;border-left:3px solid ${T.line};padding-left:28px;min-width:0}
 .row .vl.big{font-family:"Noto Serif CJK JP",serif;font-weight:900;font-size:52px;line-height:1.25;color:#3A2424}
 .row .vl.price{font-family:"Noto Serif CJK JP",serif;font-weight:900;font-size:60px;color:${T.accent};line-height:1.15}
@@ -202,15 +202,15 @@ function slideHTML(s, i, n, seed, T) {
       <div style="margin-top:30px;padding-top:22px;border-top:2px solid ${T.line};font-family:'Noto Serif CJK JP',serif;font-size:31px;color:#4A3434;width:760px;white-space:nowrap">Halulu渋谷歯科 ｜ 渋谷駅近く・完全自費診療</div>
       <div style="height:40px"></div>${FOOT}</div>`;
   } else if (type === "info") {
-    deco += K.BRANCH(true) + K.at(760, 230, K.LEAF(90, 130)) + K.at(10, 1120, K.FLOWER(80)) + K.at(80, 1180, K.LEAF(80, 300));
-    over += `<img class="chara" style="right:-40px;bottom:30px;height:250px" src="${CH.dataUri(CH.pick("mini", seed, i, s.chara))}">`;
-    over += `<div class="say" style="right:150px;bottom:250px;font-size:28px;padding:16px 24px">要チェック♡</div>`;
+    // 表にかぶらないよう、はるみちゃんは右上（タイトルの横）に小さく。吹き出しは付けない（2026-10-27 文字にかぶったため）
+    deco += K.BRANCH(true) + K.at(620, 1190, K.LEAF(90, 130)) + K.at(10, 1120, K.FLOWER(80)) + K.at(80, 1180, K.LEAF(80, 300));
+    over += `<img class="chara" style="right:-10px;top:110px;height:250px" src="${CH.dataUri(CH.pick("mini", seed, i, s.chara))}">`;
     const rows = [];
     rows.push(["tooth", "施術名", `<div class="vl big" style="font-size:${fitSize(s.heading, 420, 50, 28)}px">${esc(s.heading)}</div>`]);
     if (s.price || s.count || s.risk) {
       if (s.price) rows.push(["yen", "費用<small style='font-size:.7em'>（税込）</small>", `<div class="vl price" style="font-size:${fitSize(s.price, 520, 60, 34)}px">${rich(s.price)}</div>`]);
       if (s.count) rows.push(["cal", "回数", `<div class="vl big" style="font-size:${fitSize(s.count, 520, 46, 32)}px">${rich(s.count)}</div>`]);
-      if (s.risk) rows.push(["warn", "主なリスク", `<div class="vl txt">${rich(s.risk)}</div>`]);
+      if (s.risk) rows.push(["warn", "主なリスク", `<div class="vl txt" style="font-size:${String(s.risk).length > 60 ? 28 : String(s.risk).length > 45 ? 30 : 32}px">${rich(s.risk)}</div>`]);
     } else {
       rows.push(["memo", "内容", `<div class="vl txt" style="font-size:30px">${rich(s.body)}</div>`]);
     }
