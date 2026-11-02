@@ -66,14 +66,23 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
           if (fb) { content.thumbnail = fb; thumbNote += "。既存記事のサムネイルを仮で入れています。公開前に差し替えてください"; }
         }
       }
-      const res = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}?status=draft`, {
-        method: "POST",
+      // コンテンツID（URLの最後）を英語のスラッグにする（2026-11-02 本人希望）。slug があれば PUT /blogs/<slug>
+      const cid = typeof raw.slug === "string" && /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(raw.slug) ? raw.slug : null;
+      // 置き換え：replaceId（前に作った下書きのID）があれば、新しい下書きができたあとに消す
+      const res = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}${cid ? "/" + cid : ""}?status=draft`, {
+        method: cid ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", "X-MICROCMS-API-KEY": key },
         body: JSON.stringify(content),
       });
       const text = await res.text();
       if (res.ok) {
         const data = JSON.parse(text);
+        let delNote = null;
+        if (raw.replaceId && raw.replaceId !== data.id) {
+          const d = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}/${raw.replaceId}`, { method: "DELETE", headers: { "X-MICROCMS-API-KEY": key } });
+          delNote = d.ok ? `前の下書き（${raw.replaceId}）は削除しました` : `前の下書き（${raw.replaceId}）は消せませんでした（${d.status}）。microCMSで手で削除してください`;
+        }
+        if (delNote) thumbNote = [thumbNote, delNote].filter(Boolean).join("。");
         result = { ok: true, contentId: data.id, editUrl: `https://${service}.microcms.io/apis/${endpoint}/${data.id}`, thumbnail: content.thumbnail, thumbNote: [thumbNote, imgNote].filter(Boolean).join("。") || null, at: new Date().toISOString() };
       } else {
         result = { ok: false, status: res.status, error: text.slice(0, 500), thumbNote, at: new Date().toISOString() };
