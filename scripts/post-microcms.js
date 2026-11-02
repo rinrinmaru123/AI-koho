@@ -1,3 +1,4 @@
+// 2026-11-02 本人決定：JSONに "publish": true があれば下書きにせずそのまま公開する（Haluluも承認＝公開）。
 // blog-queue/<id>.json を microCMS に「下書き」で送り、結果を blog-results/<id>.json に残す。
 // 送った（または失敗した）キューファイルは削除して、二重送信を防ぐ。
 const fs = require("fs");
@@ -69,7 +70,7 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
       // コンテンツID（URLの最後）を英語のスラッグにする（2026-11-02 本人希望）。slug があれば PUT /blogs/<slug>
       const cid = typeof raw.slug === "string" && /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(raw.slug) ? raw.slug : null;
       // 置き換え：replaceId（前に作った下書きのID）があれば、新しい下書きができたあとに消す
-      let res = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}${cid ? "/" + cid : ""}?status=draft`, {
+      let res = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}${cid ? "/" + cid : ""}${raw.publish ? "" : "?status=draft"}`, {
         method: cid ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", "X-MICROCMS-API-KEY": key },
         body: JSON.stringify(content),
@@ -77,7 +78,7 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
       let text = await res.text();
       // 同じスラッグの下書きが既にあるときは、上書き（PATCH）で作り直す（2026-11-02）
       if (!res.ok && cid) {
-        const r2 = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}/${cid}?status=draft`, {
+        const r2 = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}/${cid}${raw.publish ? "" : "?status=draft"}`, {
           method: "PATCH", headers: { "Content-Type": "application/json", "X-MICROCMS-API-KEY": key }, body: JSON.stringify(content),
         });
         if (r2.ok) { res = r2; text = await r2.text(); if (!text) text = JSON.stringify({ id: cid }); }
@@ -90,7 +91,7 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
           delNote = d.ok ? `前の下書き（${raw.replaceId}）は削除しました` : `前の下書き（${raw.replaceId}）は消せませんでした（${d.status}）。microCMSで手で削除してください`;
         }
         if (delNote) thumbNote = [thumbNote, delNote].filter(Boolean).join("。");
-        result = { ok: true, contentId: data.id, editUrl: `https://${service}.microcms.io/apis/${endpoint}/${data.id}`, thumbnail: content.thumbnail, thumbNote: [thumbNote, imgNote].filter(Boolean).join("。") || null, at: new Date().toISOString() };
+        result = { ok: true, contentId: data.id, editUrl: `https://${service}.microcms.io/apis/${endpoint}/${data.id}`, published: !!raw.publish, thumbnail: content.thumbnail, thumbNote: [thumbNote, imgNote].filter(Boolean).join("。") || null, at: new Date().toISOString() };
       } else {
         result = { ok: false, status: res.status, error: text.slice(0, 500), thumbNote, at: new Date().toISOString() };
       }
