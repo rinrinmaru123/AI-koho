@@ -13,9 +13,24 @@ const BG = {
   cream: { g: "#FFFDF8 0%,#FBF6EC 60%,#F3ECDD 100%", halo: "#FFFBF2", dot: "#EAD9B8", cat: "#B99A62", brand: "#B98A5A" },
   sage:  { g: "#FBFDF9 0%,#EEF5EC 60%,#DDEBDB 100%", halo: "#F6FBF4", dot: "#C3DCC0", cat: "#7FAE86", brand: "#6E9C76" },
   white: { g: "#FFFFFF 0%,#FFFFFF 55%,#F6F3F1 100%", halo: "#FFFFFF", dot: "#EADFDA", cat: "#E58BA0", brand: "#D9708A" },
+  // 2色のグラデーション（2026-11-02 本人希望「グラデーションにしてほしい・記事ごとに色を変える」）
+  "cream-pink":  { g: "#FFFBF2 0%,#FBF3E6 40%,#FBE6EA 100%", halo: "#FFFFFF", dot: "#F2D3D9", cat: "#D98AA0", brand: "#C9798F" },
+  "sage-cream":  { g: "#F4FAF1 0%,#EAF3E6 40%,#F8F1E3 100%", halo: "#FFFFFF", dot: "#C9DFC3", cat: "#7FAE86", brand: "#6E9C76" },
+  "sky-mint":    { g: "#F1F8FD 0%,#E6F1FA 45%,#E4F4EC 100%", halo: "#FFFFFF", dot: "#C6DDF0", cat: "#6FA3CF", brand: "#5B8FBD" },
+  "lavender-pink": { g: "#F7F4FD 0%,#EEE8FA 45%,#FBE7EE 100%", halo: "#FFFFFF", dot: "#DCD0F2", cat: "#9C86CF", brand: "#8A74BF" },
+  "lemon-sage":  { g: "#FFFCEE 0%,#FBF5D9 45%,#E8F2E1 100%", halo: "#FFFFFF", dot: "#EEDFA6", cat: "#BC9B3A", brand: "#A98A30" },
+  "peach-cream": { g: "#FFF6F0 0%,#FDE9DE 45%,#FBF4E6 100%", halo: "#FFFFFF", dot: "#F4CDB8", cat: "#DE8D6A", brand: "#CC7B58" },
 };
+const ROTATE = ["cream-pink", "sage-cream", "sky-mint", "lavender-pink", "lemon-sage", "peach-cream"];
+// 出力先の日付（…/YYYYMMDD-…）から順番に回す。日付がなければタイトルから
+function autoTheme(out, title) {
+  const m = String(out || "").match(/(20\d{6})/);
+  const n = m ? Math.floor(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5) : [...String(title)].reduce((a, c) => a + c.codePointAt(0), 0);
+  return ROTATE[n % ROTATE.length];
+}
+let OUT = "";
 function html(title, cat, chara, theme) {
-  const B = BG[theme] || BG[process.env.THUMB_THEME] || BG.cream;
+  const B = BG[theme] || BG[process.env.THUMB_THEME] || BG[autoTheme(OUT, title)];
   const t = esc(title).replace(/\\n|\n/g, "<br>");
   // 一番長い行が幅（約590px）に収まる文字サイズにする（半角は0.6文字分で数える）
   const w = l => [...l].reduce((n, c) => n + (/[\x20-\x7e]/.test(c) ? 0.6 : 1), 0);
@@ -50,6 +65,7 @@ ${cat ? `<div class="cat">${esc(cat)}</div>` : `<div style="margin-top:auto"></d
 
 (async () => {
   const [, , title, cat, out, chara, theme] = process.argv;
+  OUT = out;
   fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
   const p = await b.newPage({ viewport: { width: 1200, height: 630 } });

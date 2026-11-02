@@ -69,12 +69,19 @@ const ALLOWED = ["title", "category", "excerpt", "body", "seoDescription", "date
       // コンテンツID（URLの最後）を英語のスラッグにする（2026-11-02 本人希望）。slug があれば PUT /blogs/<slug>
       const cid = typeof raw.slug === "string" && /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(raw.slug) ? raw.slug : null;
       // 置き換え：replaceId（前に作った下書きのID）があれば、新しい下書きができたあとに消す
-      const res = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}${cid ? "/" + cid : ""}?status=draft`, {
+      let res = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}${cid ? "/" + cid : ""}?status=draft`, {
         method: cid ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", "X-MICROCMS-API-KEY": key },
         body: JSON.stringify(content),
       });
-      const text = await res.text();
+      let text = await res.text();
+      // 同じスラッグの下書きが既にあるときは、上書き（PATCH）で作り直す（2026-11-02）
+      if (!res.ok && cid) {
+        const r2 = await fetch(`https://${service}.microcms.io/api/v1/${endpoint}/${cid}?status=draft`, {
+          method: "PATCH", headers: { "Content-Type": "application/json", "X-MICROCMS-API-KEY": key }, body: JSON.stringify(content),
+        });
+        if (r2.ok) { res = r2; text = await r2.text(); if (!text) text = JSON.stringify({ id: cid }); }
+      }
       if (res.ok) {
         const data = JSON.parse(text);
         let delNote = null;
