@@ -129,8 +129,8 @@ b{color:${T.deep};font-weight:700}
 }
 
 let COVER_LAYOUT = 0, COVER_POSE = null;
-const COVER_POSES = ["bikkuri", "uttori", "nikkori", "genki", "wink", "waai", "suwari", "jump", "nikoniko", "wink-heart"];
-const WORRY_POSES = ["shonbori", "bikkuri", "suwari", "nikoniko"];
+const COVER_POSES = ["bikkuri", "uttori", "nikkori", "genki", "wink", "waai", "suwari", "jump", "nikoniko", "wink-heart", "kangae", "point", "mushimegane", "kira", "hamigaki"];
+const WORRY_POSES = ["shonbori", "kangae", "bikkuri", "suwari", "nikoniko"];
 function slideHTML(s, i, n, seed, T) {
   const K = decoKit(T);
   const LOGO = `<div class="logo">${K.SPROUT(64)}<span>Halulu<span class="jp">渋谷歯科</span></span><svg class="logoline" width="460" height="40" viewBox="0 0 460 40"><path d="M4 20 C120 8 300 6 456 30" stroke="#D9B3A8" stroke-width="2.5" fill="none"/></svg><span class="lheart">${K.HEART(26)}</span></div>`;

@@ -5,10 +5,11 @@ const path = require("path");
 const DIR = path.join(__dirname, "..", "assets", "chara");
 
 const POOLS = {
-  cover: ["bikkuri", "uttori", "nikkori", "wink", "suwari"], // 問いかけ・気づき（悲しい顔は不安テーマ専用）
-  end: ["genki", "jump", "waai", "wink-heart", "nikoniko"],            // 予約への呼びかけ
-  mini: ["nikkori", "suwari", "wink", "uttori", "genki", "nikoniko", "oyasumi", "waai"],
-  thumb: ["nikkori", "suwari", "uttori", "wink", "genki", "nikoniko", "waai", "wink-heart", "jump"],
+  // 2026-11-02 シンプル版の絵に差し替え（豪華版は assets/chara-deluxe）。kanban（白い看板）・punpun（ぷんぷん）は指定したときだけ使う
+  cover: ["bikkuri", "uttori", "nikkori", "wink", "suwari", "kangae", "point", "mushimegane", "kira"], // 問いかけ・気づき（悲しい顔は不安テーマ専用）
+  end: ["genki", "jump", "waai", "wink-heart", "nikoniko", "peko"],            // 予約への呼びかけ
+  mini: ["nikkori", "suwari", "wink", "uttori", "genki", "nikoniko", "oyasumi", "waai", "point", "hamigaki", "kihon"],
+  thumb: ["nikkori", "suwari", "uttori", "wink", "genki", "nikoniko", "waai", "wink-heart", "jump", "kira", "point"],
 };
 const NAMES = fs.readdirSync(DIR).filter(f => f.endsWith(".png")).map(f => f.replace(/\.png$/, ""));
 const hash = s => {

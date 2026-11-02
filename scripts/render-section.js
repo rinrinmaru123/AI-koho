@@ -153,6 +153,33 @@ body{background:radial-gradient(ellipse at ${LAY.glow},${C.c1} 0%,${C.c2} 45%,${
 </style></head><body>${dots}<div class="floor"></div><img class="chara" src="${img}">${bubble}</body></html>`;
 }
 
+// 記事の中の「会話の吹き出し」（2026-11-02 本人希望：大きい挿絵ではなく、ページの端に小さいアイコン＋吹き出し）
+// { "kind":"talk", "brand", "out", "say":"ひと言（40字くらいまで）", "side":"left"|"right"（任意。無ければ交互）, "mood":"worry"（任意）, "chara":"（任意）" }
+// 背景は透明（PNG）。ブログの白い背景になじむ。1200x300
+function talk(s, idx) {
+  const hg = s.brand === "haguruma";
+  const seed = path.basename(String(s.out || "")).replace(/-img\w+\.\w+$/, "");
+  const worry = s.mood === "worry";
+  const chara = s.chara || (hg ? (worry ? "komari" : HG.pick("section", seed, idx)) : (worry ? "shonbori" : CH.pick("mini", seed, idx)));
+  const img = hg ? HG.dataUri(chara) : CH.dataUri(chara);
+  const C = hg ? { ring:"#BFE3CB", fill:"#EEF8F1", ink:"#16382A", name:"#22994F", line:"#BFE3CB" } : { ring:"#F3C9D3", fill:"#FFF3F5", ink:"#3A2E2E", name:"#D9668A", line:"#F3C9D3" };
+  const name = hg ? "はぐるん" : "はるみちゃん";
+  const right = s.side ? s.side === "right" : idx % 2 === 1;
+  const say = String(s.say || "");
+  const fz = say.length > 28 ? 34 : 38;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE}
+html,body{background:transparent}
+body{width:1200px;height:300px;display:flex;align-items:center;gap:34px;padding:0 40px;flex-direction:${right ? "row-reverse" : "row"}}
+.who{flex:0 0 210px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.ic{width:200px;height:200px;border-radius:50%;background:${C.fill};border:6px solid ${C.ring};overflow:hidden;display:flex;align-items:flex-start;justify-content:center}
+.ic img{width:${hg ? 118 : 104}%;margin-top:${hg ? 6 : 3}%}
+.nm{font-weight:700;font-size:24px;color:${C.name}}
+.bubble{position:relative;flex:0 1 auto;max-width:880px;background:#fff;border:4px solid ${C.line};border-radius:36px;padding:30px 42px;font-size:${fz}px;font-weight:700;color:${C.ink};line-height:1.55;word-break:keep-all;overflow-wrap:anywhere}
+.bubble::before{content:"";position:absolute;top:50%;margin-top:-20px;${right ? "right:-34px;border-left:34px solid " + C.line : "left:-34px;border-right:34px solid " + C.line};border-top:20px solid transparent;border-bottom:20px solid transparent}
+.bubble::after{content:"";position:absolute;top:50%;margin-top:-15px;${right ? "right:-26px;border-left:27px solid #fff" : "left:-26px;border-right:27px solid #fff"};border-top:15px solid transparent;border-bottom:15px solid transparent}
+</style></head><body><div class="who"><div class="ic"><img src="${img}"></div><div class="nm">${name}</div></div><div class="bubble">${esc(say)}</div></body></html>`;
+}
+
 (async () => {
   const specs = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
@@ -160,6 +187,14 @@ body{background:radial-gradient(ellipse at ${LAY.glow},${C.c1} 0%,${C.c2} 45%,${
   let hi = 0;
   for (const s of specs) {
     fs.mkdirSync(path.dirname(path.resolve(s.out)), { recursive: true });
+    if (s.kind === "talk") {
+      await p.setViewportSize({ width: 1200, height: 300 });
+      await p.setContent(talk(s, hi++), { waitUntil: "load" });
+      await p.evaluate(() => document.fonts.ready);
+      await p.screenshot({ path: s.out, type: "png", omitBackground: true });
+      await p.setViewportSize({ width: 1200, height: 675 });
+      console.log(s.out); continue;
+    }
     await p.setContent(s.kind === "illust" ? illust(s, hi++) : s.kind === "table" ? table(s) : (s.brand === "haguruma" ? haguruma(s, hi++) : halulu(s)), { waitUntil: "load" });
     await p.evaluate(() => document.fonts.ready);
     await p.screenshot({ path: s.out, type: "png" });
