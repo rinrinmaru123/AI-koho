@@ -140,8 +140,11 @@ function magSlide(s, i, n, seed, T) {
   let body = "", over = "";
   if (s.type === "cover") {
     const size = fit(s.title, 960, 150, 96);
-    over = `<div class="blk" style="right:-60px;bottom:110px;width:640px;height:560px;transform:rotate(-8deg)"></div>`
-      + chara(p, "right:40px;bottom:120px;height:560px", "chara cut")
+    // タイトルが3行以上のときは、はぐるんを小さくして文字に重ならないように
+    const tb = 200 + 94 + size * 1.18 * String(s.title).split("\n").length;
+    const ch = Math.max(360, Math.min(560, 1350 - 120 - tb - 30));
+    over = `<div class="blk" style="right:-60px;bottom:110px;width:${Math.round(ch * 1.14)}px;height:${ch}px;transform:rotate(-8deg)"></div>`
+      + chara(p, `right:40px;bottom:120px;height:${ch}px`, "chara cut")
       + `<div class="quote" style="left:60px;bottom:200px">“${say(s)}”<small>— はぐるん</small></div>`;
     body = `<div class="kick">${s.sub ? plain(s.sub).replace(/<br>/g, " ") : "FEATURE"}</div>
       <div class="ttl" style="margin-top:34px;font-size:${size}px">${ttl(s.title)}</div>
