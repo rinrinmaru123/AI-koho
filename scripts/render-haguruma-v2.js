@@ -29,8 +29,13 @@ const THEMES = {
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const em = s => s.replace(/\*\*(.+?)\*\*/g, "<em>$1</em>").replace(/\{(.+?)\}/g, "<small>$1</small>");
+// 日本語の文節で改行する（BudouX）。文節の途中では折り返さない
+let BX; try { BX = require("budoux").loadDefaultJapaneseParser(); } catch (e) { BX = null; }
+const ph = t => BX ? BX.parse(String(t)).map(esc).join("<wbr>") : esc(t);
+const inl = s => String(s == null ? "" : s).split(/(\*\*.+?\*\*|\{.+?\})/).filter(x => x !== "").map(seg =>
+  seg.startsWith("**") ? `<em>${ph(seg.slice(2, -2))}</em>` : seg.startsWith("{") && seg.endsWith("}") ? `<small>${ph(seg.slice(1, -1))}</small>` : ph(seg)).join("<wbr>");
 // 見出し：行頭 ~ の行（無ければ1行目）にマーカー
-const ttl = s => { const L = String(s || "").split("\n"); const any = L.some(l => l.startsWith("~")); return L.map((l, k) => { const t = em(esc(l.replace(/^~/, ""))); return (any ? l.startsWith("~") : k === 0) ? `<span class="mk">${t}</span>` : t; }).join("<br>"); };
+const ttl = s => { const L = String(s || "").split("\n"); const any = L.some(l => l.startsWith("~")); return L.map((l, k) => { const t = inl(l.replace(/^~/, "")); return (any ? l.startsWith("~") : k === 0) ? `<span class="mk">${t}</span>` : t; }).join("<br>"); };
 const plain = s => esc(String(s || "").replace(/^~/gm, "").replace(/\*\*|\{|\}/g, "")).replace(/\n/g, "<br>");
 const rich = s => esc(String(s || "").replace(/^~/gm, "")).replace(/\n/g, "<br>").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
 const rows = s => String(s || "").replace(/([。！？])\*\*/g, "**$1").split(/\n/).flatMap(l => l.match(/[^。！？]+[。！？]?/g) || [l]).map(t => t.trim()).filter(Boolean);
@@ -71,17 +76,17 @@ function chatSlide(s, i, n, seed, T) {
   } else if (s.type === "check") {
     body = `<div class="day">チェックリスト</div>
       ${L(`<div class="ttl" style="font-size:${fit(s.heading || s.title, 700, 76, 54)}px">${ttl(s.heading || s.title)}</div>`, "card")}
-      <div class="msg l">${icon}<div class="bb list">${rows(s.body).map(t => `<div class="ck"><i></i><span>${em(esc(t))}</span></div>`).join("")}</div></div>`;
+      <div class="msg l">${icon}<div class="bb list">${rows(s.body).map(t => `<div class="ck"><i></i><span>${inl(t)}</span></div>`).join("")}</div></div>`;
     over = chara(p, "right:24px;bottom:150px;height:300px", "chara stamp") + `<div class="stk" style="right:290px;bottom:400px">${say(s)}</div>`;
   } else {
     body = `<div class="day">POINT ${s.no || i}</div>
       <div class="msg l big">${icon}<div class="bb card"><div class="ttl" style="font-size:${fit(s.heading, 740, 92, 60)}px">${ttl(s.heading)}</div></div></div>
-      ${L(rows(s.body).map(t => em(esc(t))).join("<br>"))}
+      ${L(rows(s.body).map(t => inl(t)).join("<br>"))}
       ${R(say(s), "say")}`;
     over = chara(p, "left:150px;bottom:140px;height:330px", "chara stamp");
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>${fontFace}
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;overflow-wrap:anywhere}
 body{width:1080px;height:1350px;position:relative;overflow:hidden;font-family:"Maru",sans-serif;color:#1F2A24;background:${T.wash}}
 body::before{content:"";position:absolute;inset:0;background:radial-gradient(rgba(255,255,255,.7) 3px,transparent 4px) 0 0/40px 40px}
 .hd{position:absolute;left:0;right:0;top:0;height:150px;background:#fff;display:flex;align-items:center;gap:22px;padding:0 44px;box-shadow:0 4px 0 rgba(0,0,0,.05);z-index:3}
@@ -153,17 +158,17 @@ function magSlide(s, i, n, seed, T) {
     over = chara(p, "right:40px;bottom:110px;height:340px", "chara cut");
     body = `<div class="kick">CHECK LIST</div>
       <div class="ttl" style="margin-top:28px;font-size:${fit(s.heading || s.title, 960, 110, 70)}px">${ttl(s.heading || s.title)}</div>
-      <ol class="ol">${rows(s.body).map(t => `<li>${em(esc(t))}</li>`).join("")}</ol>`;
+      <ol class="ol">${rows(s.body).map(t => `<li>${inl(t)}</li>`).join("")}</ol>`;
   } else {
     over = `<div class="circ" style="right:60px;bottom:120px"></div>` + chara(p, "right:70px;bottom:120px;height:400px", "chara cut")
       + `<div class="quote" style="right:470px;bottom:200px;text-align:right">“${say(s)}”<small>— はぐるん</small></div>`;
     body = `<div class="bignum">${String(s.no || i).padStart(2, "0")}</div>
       <div class="ttl" style="margin-top:6px;font-size:${fit(s.heading, 960, 108, 68)}px">${ttl(s.heading)}</div>
       <div class="rule"></div>
-      <div class="txt">${rows(s.body).map(t => `<p>${em(esc(t))}</p>`).join("")}</div>`;
+      <div class="txt">${rows(s.body).map(t => `<p>${inl(t)}</p>`).join("")}</div>`;
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>${fontFace}
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;overflow-wrap:anywhere}
 body{width:1080px;height:1350px;position:relative;overflow:hidden;background:#FBFAF6;color:#151515;font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif}
 .mast{position:absolute;left:60px;right:60px;top:44px;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:4px solid #151515;padding-bottom:16px;z-index:3}
 .mt{font-family:"Noto Serif CJK JP",serif;font-weight:900;font-size:60px;letter-spacing:.02em;line-height:1}
@@ -226,20 +231,20 @@ function comicSlide(s, i, n, seed, T) {
     body = `<div class="panel" style="left:40px;top:40px;width:1000px;height:1200px">
         <div class="cap" style="left:-6px;top:-6px">チェック！</div>
         <div class="ttl" style="position:absolute;left:50px;right:50px;top:120px;font-size:${fit(s.heading || s.title, 900, 110, 70)}px">${ttl(s.heading || s.title)}</div>
-        <div class="nar" style="left:50px;top:420px;width:620px">${rows(s.body).map(t => `<div class="ck">☑ ${em(esc(t))}</div>`).join("")}</div>
+        <div class="nar" style="left:50px;top:420px;width:620px">${rows(s.body).map(t => `<div class="ck">☑ ${inl(t)}</div>`).join("")}</div>
         ${chara(p, "right:30px;bottom:90px;height:420px")}<div class="bal" style="right:60px;top:430px">${say(s)}</div></div>`;
   } else {
     body = `<div class="panel" style="left:40px;top:40px;width:1000px;height:470px;transform:rotate(-1deg)">
         <div class="cap" style="left:-6px;top:-6px">POINT ${s.no || i}</div>
-        <div class="ttl" style="position:absolute;left:50px;right:50px;top:130px;font-size:${fit(s.heading, 900, 112, 70)}px">${ttl(s.heading)}</div></div>
+        <div class="ttl" style="position:absolute;left:50px;right:50px;top:130px;font-size:${fit(s.heading, 800, 108, 66)}px">${ttl(s.heading)}</div></div>
       <div class="panel" style="left:40px;top:540px;width:560px;height:730px;transform:rotate(.6deg)">
-        <div class="nar" style="left:34px;right:34px;top:40px">${rows(s.body).map(t => `<p>${em(esc(t))}</p>`).join("")}</div></div>
+        <div class="nar" style="left:34px;right:34px;top:40px">${rows(s.body).map(t => `<p>${inl(t)}</p>`).join("")}</div></div>
       <div class="panel tone" style="left:630px;top:540px;width:410px;height:730px;transform:rotate(-.6deg)">${SPEED(220, 520, "#111")}
         ${chara(p, "left:-30px;bottom:-10px;height:440px")}
         <div class="bal" style="left:30px;top:40px">${say(s)}</div></div>`;
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>${fontFace}
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;overflow-wrap:anywhere}
 body{width:1080px;height:1350px;position:relative;overflow:hidden;font-family:"Maru",sans-serif;color:#111;background:#fff}
 .panel{position:absolute;background:#fff;border:9px solid #111;overflow:hidden}
 .panel.tone{background:${T.wash} radial-gradient(${T.pop} 4px,transparent 5px) 0 0/22px 22px}
