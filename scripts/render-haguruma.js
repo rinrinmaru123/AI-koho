@@ -326,8 +326,18 @@ function slideHTML(s, i, n, seed, T, pose) {
   const m = String(outDir).match(/(20\d{6})/);
   const d = m ? Math.floor(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5 / 2) : hash(seed);
   if (m) themeName = THEME_ORDER[d % THEME_ORDER.length];
-  COVER_LAYOUT = slides[0] && slides[0].layout != null ? +slides[0].layout : d % 4;
-  STYLE = slides[0] && slides[0].style != null ? +slides[0].style : (m ? d % 3 : hash(seed) % 3);
+  // 型そのもの（雰囲気）も投稿ごとに順番に（2026-11-12 本人「Haluluみたいにガラッと雰囲気を変えたい」）
+  // classic=今までの型 / chat=トーク画面風 / magazine=雑誌風 / comic=漫画風（render-haguruma-v2.js）。1枚目に "design" で指定も可
+  const DESIGNS = ["classic", "chat", "magazine", "comic"];
+  const design = (slides[0] && slides[0].design) || process.argv[4] || DESIGNS[(m ? d : hash(seed)) % DESIGNS.length];
+  if (design !== "classic") {
+    const { execFileSync } = require("child_process");
+    process.stdout.write(execFileSync(process.execPath, [path.join(__dirname, "render-haguruma-v2.js"), inFile, outDir, design, themeName], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }));
+    return;
+  }
+  const k = Math.floor((m ? d : hash(seed)) / DESIGNS.length);
+  COVER_LAYOUT = slides[0] && slides[0].layout != null ? +slides[0].layout : k % 4;
+  STYLE = slides[0] && slides[0].style != null ? +slides[0].style : k % 3;
   if (slides[0] && !slides[0].chara) {
     const worry = WORRY.test([slides[0].title, slides[0].lead].join(""));
     slides[0] = { ...slides[0], chara: worry ? ["komari", "bikkuri"][d % 2] : COVER_POSES[d % COVER_POSES.length] };
