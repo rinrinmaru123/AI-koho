@@ -29,6 +29,17 @@ function autoTheme(out, title) {
   return ROTATE[n % ROTATE.length];
 }
 let OUT = "";
+// 配置も4種類を記事ごとに順番に（2026-11-12 本人「色だけでなくデザインも変えて」）
+// 0=文字左・キャラ右 1=左右反転 2=白いカードの上に文字 3=下に色の帯
+function layoutNo(out, title) {
+  if (process.env.THUMB_LAYOUT) return +process.env.THUMB_LAYOUT % 4;
+  const m = String(out || "").match(/(20\d{6})/);
+  if (!m) return [...String(title)].reduce((a, c) => a + c.codePointAt(0), 0) % 4;
+  const days = Math.floor(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5);
+  const week = Math.floor((days + 3) / 7), dow = (days + 3) % 7; // 0=月曜
+  return (week * 2 + (dow >= 3 ? 1 : 0)) % 4;
+}
+
 function html(title, cat, chara, theme) {
   const B = BG[theme] || BG[process.env.THUMB_THEME] || BG[autoTheme(OUT, title)];
   const t = esc(title).replace(/\\n|\n/g, "<br>");
@@ -38,7 +49,7 @@ function html(title, cat, chara, theme) {
   const size = Math.max(36, Math.min(68, Math.floor(560 / longest)));
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:1200px;height:630px;background:linear-gradient(120deg,${B.g});color:#3A2E2E;font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;position:relative;overflow:hidden}
+body{--band:${B.cat};width:1200px;height:630px;background:linear-gradient(120deg,${B.g});color:#3A2E2E;font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;position:relative;overflow:hidden}
 .halo{position:absolute;width:640px;height:640px;border-radius:50%;right:-110px;top:-10px;background:radial-gradient(circle,#FFFFFF 0%,${B.halo} 45%,rgba(255,255,255,0) 70%)}
 .dot{position:absolute;border-radius:50%;background:${B.dot};opacity:.55}
 .leaf{position:absolute;width:90px;height:44px;border-radius:0 100% 0 100%;background:#B9D8BF;opacity:.7}
@@ -50,8 +61,26 @@ body{width:1200px;height:630px;background:linear-gradient(120deg,${B.g});color:#
 .title{margin-top:22px;word-break:keep-all;font-family:"Noto Serif CJK JP","Noto Serif JP",serif;font-weight:700;line-height:1.42;font-size:${size}px}
 .line{margin-top:26px;width:96px;height:6px;border-radius:3px;background:#8DBE99}
 .foot{margin-top:auto;font-size:20px;color:#9C8A8C;letter-spacing:.05em}
-</style></head><body>
-<div class="halo"></div>
+.card{display:none}
+.band{display:none}
+.L1 .chara{right:auto;left:24px;object-position:left bottom}
+.L1 .halo{right:auto;left:-110px}
+.L1 .wrap{left:auto;right:0;padding-left:0;padding-right:70px;width:660px}
+.L1 .leaf{left:auto!important;right:-14px;transform:rotate(200deg)!important}
+.L2 .card{display:block;position:absolute;left:48px;top:46px;width:790px;height:538px;border-radius:40px;background:rgba(255,255,255,.86);box-shadow:0 14px 40px rgba(0,0,0,.06)}
+.L2 .wrap{padding-top:92px;padding-bottom:84px;padding-left:104px;width:740px}
+.L2 .chara{right:6px;height:500px}
+.L2 .halo{opacity:.5}
+.L3 .band{display:block;position:absolute;left:0;right:0;bottom:0;height:118px;background:var(--band)}
+.L3 .wrap{width:780px;padding-bottom:42px}
+.L3 .title{margin-top:30px}
+.L3 .chara{bottom:-4px}
+.L3 .leaf{display:none}
+.L3 .foot{color:#fff}
+.L3 .cat{margin-top:34px}
+.L3 .line{background:#fff;opacity:.0}
+</style></head><body class="L${layoutNo(OUT, title)}">
+<div class="halo"></div><div class="card"></div><div class="band"></div>
 <div class="dot" style="width:26px;height:26px;left:620px;top:70px"></div>
 <div class="dot" style="width:14px;height:14px;left:660px;top:120px"></div>
 <div class="dot" style="width:18px;height:18px;left:560px;bottom:70px"></div>

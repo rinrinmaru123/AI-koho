@@ -30,6 +30,9 @@ const THEMES = {
 const THEME_ORDER = ["free", "sky", "skill", "lavender", "care", "pink", "money"];
 const COVER_POSES = ["ureshii", "iine", "ganbaru", "wink", "nikkori", "tere", "bikkuri"];
 let COVER_LAYOUT = 0;
+// 飾りのスタイル3種も投稿ごとに順番に（2026-11-12 本人「色だけでなくデザインも変えて」）
+// 0=水彩とドット（元の見本） 1=方眼ノート＋マスキングテープ 2=ストライプと丸のポップ
+let STYLE = 0;
 const RULES = [
   ["clinic", /医院の方|採用担当|医院向け|求人を出|募集を出|掲載|人手不足|欠員|長期採用|採用/],
   ["skill", /講座|スキル|資格|アートメイク|セミナー|勉強|学び|技術|キャリア/],
@@ -106,6 +109,10 @@ const dots = (x, y, w, h, op = .55) => `<svg class="d" style="left:${x}px;top:${
 const blob = (x, y, w, h, c, op, r) => { const k = Math.floor(r * 4); const shapes = ["M60 10 C120 -10 200 30 190 100 C182 170 110 200 60 180 C10 160 -10 40 60 10 Z", "M40 30 C100 -10 190 10 195 80 C200 150 130 200 70 185 C10 170 -5 70 40 30 Z", "M80 5 C150 0 205 60 185 120 C165 185 70 200 30 150 C-10 100 20 10 80 5 Z", "M30 60 C40 10 140 -5 180 40 C215 85 180 170 110 190 C40 205 20 110 30 60 Z"]; return `<svg class="d" style="left:${x}px;top:${y}px;opacity:${op}" width="${w}" height="${h}" viewBox="0 0 200 200" preserveAspectRatio="none"><path d="${shapes[k]}" fill="${c}"/></svg>`; };
 const arrow = (x, y, w, rot) => `<svg class="d" style="left:${x}px;top:${y}px;transform:rotate(${rot}deg)" width="${w}" height="${w * .7}" viewBox="0 0 300 210"><path d="M10 200 C90 190 190 150 250 50" stroke="var(--pop)" stroke-width="16" fill="none" stroke-linecap="round" opacity=".9"/><path d="M212 58 L258 30 L262 86" stroke="var(--pop)" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const ground = r => `<svg class="d" style="left:0;bottom:0" width="1080" height="420" viewBox="0 0 1080 420" preserveAspectRatio="none"><path d="M0 ${150 + r * 80} C260 ${60 + r * 60} 520 ${230 - r * 60} 760 ${120 + r * 50} C900 ${70 + r * 40} 1000 ${110} 1080 ${60 + r * 40} V420 H0 Z" fill="var(--wash)" opacity=".75"/><path d="M0 ${250 + r * 40} C300 ${170 + r * 50} 600 ${300} 1080 ${180 - r * 40} V420 H0 Z" fill="#A7DDBB" opacity=".45"/><path d="M-10 ${300 + r * 30} C320 ${230} 640 ${330 - r * 40} 1090 ${240}" stroke="var(--pop)" stroke-width="10" fill="none" opacity=".55" stroke-linecap="round"/></svg>`;
+const paper = () => `<div class="d" style="left:0;top:0;width:1080px;height:1350px;background-image:linear-gradient(var(--grid) 2px,transparent 2px),linear-gradient(90deg,var(--grid) 2px,transparent 2px);background-size:54px 54px;background-position:-2px -2px"></div>`;
+const tape = (x, y, rot) => `<div class="d" style="left:${x}px;top:${y}px;width:230px;height:62px;background:repeating-linear-gradient(45deg,var(--hl) 0 16px,rgba(255,255,255,.55) 16px 32px);opacity:.9;transform:rotate(${rot}deg);box-shadow:0 2px 6px rgba(0,0,0,.06)"></div>`;
+const circ = (x, y, d, c, op) => `<div class="d" style="left:${x}px;top:${y}px;width:${d}px;height:${d}px;border-radius:50%;background:${c};opacity:${op}"></div>`;
+const stripes = r => `<svg class="d" style="left:0;top:0" width="1080" height="1350"><defs><pattern id="st" width="44" height="44" patternUnits="userSpaceOnUse" patternTransform="rotate(${30 + Math.floor(r() * 30)})"><rect width="18" height="44" fill="var(--wash)"/></pattern></defs><path d="M0 0 H${420 + r() * 120} L0 ${380 + r() * 100} Z" fill="url(#st)" opacity=".8"/><path d="M1080 1350 H${600 - r() * 100} L1080 ${930 - r() * 100} Z" fill="url(#st)" opacity=".8"/></svg>`;
 // 雲の吹き出し（tail: 尻尾の向き）
 function cloud(text, x, y, w, size, tail = "bl", rot = -4) {
   const lines = String(text).split("\n");
@@ -124,7 +131,7 @@ function css(T) {
 @font-face{font-family:R;font-weight:800;src:url(${fileUrl(path.join(FONT, "MPLUSRounded1c-ExtraBold.ttf"))})}
 @font-face{font-family:R;font-weight:700;src:url(${fileUrl(path.join(FONT, "MPLUSRounded1c-Bold.ttf"))})}
 @font-face{font-family:R;font-weight:500;src:url(${fileUrl(path.join(FONT, "MPLUSRounded1c-Medium.ttf"))})}
-:root{--g1:#1E7A4A;--g2:#22A05A;--ink:${T.ink};--hl:${T.hl};--pop:${T.pop};--em:${T.em};--wash:${T.wash};--wash2:${T.wash2}}
+:root{--grid:rgba(30,122,74,.09);--g1:#1E7A4A;--g2:#22A05A;--ink:${T.ink};--hl:${T.hl};--pop:${T.pop};--em:${T.em};--wash:${T.wash};--wash2:${T.wash2}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1080px;height:1350px;background:linear-gradient(165deg,${T.bg[0]} 0%,${T.bg[1]} 45%,${T.bg[2]} 100%);color:var(--ink);font-family:R,"Noto Sans CJK JP",sans-serif;position:relative;overflow:hidden}
 .d{position:absolute;line-height:0;z-index:1}
@@ -159,6 +166,22 @@ small{font-size:.62em}
 .check:last-child{border-bottom:0}
 .check i{flex:0 0 58px;height:58px;border-radius:16px;background:var(--g2);display:flex;align-items:center;justify-content:center;margin-top:2px}
 .line{position:absolute;left:70px;right:70px;bottom:90px;z-index:6;height:150px;border-radius:999px;background:linear-gradient(180deg,#26935A,var(--g1));display:flex;align-items:center;justify-content:center;gap:28px;color:#fff;font-weight:900;font-size:56px;box-shadow:0 12px 26px rgba(30,122,74,.32),inset 0 3px 0 rgba(255,255,255,.3)}
+.s1 .box{background:#fff;border-radius:22px;box-shadow:10px 10px 0 var(--wash)}
+.s1 .rows .r{border-bottom:3px solid #E3EEE7}
+.s1 .page{background:#fff;color:var(--g1);border:5px solid var(--g1);box-shadow:none}
+.s1 .swipe{background:#fff;color:var(--g1);border:6px solid var(--g1);box-shadow:8px 8px 0 var(--wash)}
+.s2 .box{background:#fff;border:6px solid var(--pop);border-radius:34px;box-shadow:none}
+.s2 .rows .r{border-bottom:0;padding-left:50px;position:relative}
+.s2 .rows .r::before{content:"";position:absolute;left:6px;top:31px;width:24px;height:24px;border-radius:50%;background:var(--pop)}
+.s2 .rows.sm .r::before{top:24px}
+.s2 .page{background:var(--pop);color:#fff}
+.s2 .swipe{background:var(--pop);color:#fff;box-shadow:0 10px 0 rgba(0,0,0,.08)}
+.badge.b1{width:210px;height:210px;flex:0 0 210px;border-radius:50%;background:var(--g2);box-shadow:0 0 0 10px #fff,0 0 0 16px var(--g2)}
+.badge.b1 .p{top:38px;font-size:34px;letter-spacing:.1em;transform:none}
+.badge.b1 .n{top:76px;font-size:100px;transform:none}
+.badge.b2{width:210px;height:180px;flex:0 0 210px}
+.badge.b2 .p{top:8px;left:18px;right:auto;font-size:38px;color:var(--pop);letter-spacing:.12em;transform:rotate(-6deg)}
+.badge.b2 .n{top:46px;left:8px;right:auto;font-size:120px;color:var(--pop);transform:rotate(-6deg);text-shadow:6px 6px 0 #fff,10px 10px 0 var(--wash)}
 .line .lg{background:#fff;color:var(--g1);font-weight:900;font-size:30px;width:104px;height:84px;border-radius:50%/48%;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
 `;
 }
@@ -176,6 +199,10 @@ function slideHTML(s, i, n, seed, T, pose) {
     + blob(-180, 520 + r() * 200, 420, 420, "var(--wash2)", .55, r()) + blob(820, 560 + r() * 180, 380, 420, "var(--wash)", .5, r())
     + dots(20 + r() * 60, 40 + r() * 100, 300, 260) + dots(760 + r() * 80, 420 + r() * 200, 300, 280, .45) + dots(40, 820 + r() * 120, 260, 240, .4)
     + ground(r());
+  if (STYLE === 1) bg = paper() + blob(-200 + r() * 120, -160 + r() * 80, 560, 460, "var(--wash)", .35, r()) + blob(820, 900 + r() * 120, 420, 420, "var(--wash2)", .45, r())
+    + tape(60 + r() * 80, 26, -6 + r() * 4) + tape(760 + r() * 80, 1250, 4 - r() * 6);
+  if (STYLE === 2) bg = stripes(r) + circ(-140 + r() * 60, 760 + r() * 120, 420, "var(--wash)", .7) + circ(760 + r() * 80, -160 + r() * 60, 460, "var(--wash2)", .8)
+    + circ(840, 980 + r() * 80, 220, "var(--hl)", .8) + circ(60 + r() * 60, 300 + r() * 120, 90, "var(--pop)", .25);
   let body = "", over = "";
   const PAGE = `<div class="page">${i + 1}/${n}</div>`;
   // ロゴは本人支給の正式版（上にHaguruma、下に歯車。2026-10-24）。logo.png（横長・タグライン付き）は使わない
@@ -256,10 +283,14 @@ function slideHTML(s, i, n, seed, T, pose) {
     body += LOGO + SWIPE;
   } else {
     // ポイント：3つのレイアウトを順番に使う（同じ並びが続かないように）
-    const L = (hash(seed) + i) % 3;
+    const L = (hash(seed) + i + STYLE) % 3;
     const hs = fitSize(s.heading, L === 2 ? 960 : 720, 120, 76);
     const no = String(s.no || i).padStart(2, "0");
-    const badge = sc => `<div class="badge" style="transform:scale(${sc});transform-origin:left top">${BADGE}<div class="p">Point</div><div class="n">${no}</div></div>`;
+    const badge = sc => STYLE === 1
+      ? `<div class="badge b1" style="transform:scale(${sc});transform-origin:left top"><div class="p">POINT</div><div class="n">${no}</div></div>`
+      : STYLE === 2
+      ? `<div class="badge b2" style="transform:scale(${sc});transform-origin:left top"><div class="p">POINT</div><div class="n">${no}</div></div>`
+      : `<div class="badge" style="transform:scale(${sc});transform-origin:left top">${BADGE}<div class="p">Point</div><div class="n">${no}</div></div>`;
     const headBlock = L === 2
       ? `<div style="height:170px">${badge(.8)}</div><div class="big" style="font-size:${hs}px;margin-top:-10px">${bigLines(s.heading)}</div>`
       : `<div style="display:flex;gap:6px;align-items:flex-start">${badge(1)}<div class="big" style="font-size:${hs}px;margin-top:40px">${bigLines(s.heading)}</div></div>`;
@@ -282,7 +313,7 @@ function slideHTML(s, i, n, seed, T, pose) {
     }
     body += LOGO + SWIPE;
   }
-  return `<!doctype html><html><head><meta charset="utf-8"><style>${css(T)}</style></head><body>${bg}${body}${PAGE}${over}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${css(T)}</style></head><body class="s${STYLE}">${bg}${body}${PAGE}${over}</body></html>`;
 }
 
 (async () => {
@@ -296,6 +327,7 @@ function slideHTML(s, i, n, seed, T, pose) {
   const d = m ? Math.floor(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8)) / 864e5 / 2) : hash(seed);
   if (m) themeName = THEME_ORDER[d % THEME_ORDER.length];
   COVER_LAYOUT = slides[0] && slides[0].layout != null ? +slides[0].layout : d % 4;
+  STYLE = slides[0] && slides[0].style != null ? +slides[0].style : (m ? d % 3 : hash(seed) % 3);
   if (slides[0] && !slides[0].chara) {
     const worry = WORRY.test([slides[0].title, slides[0].lead].join(""));
     slides[0] = { ...slides[0], chara: worry ? ["komari", "bikkuri"][d % 2] : COVER_POSES[d % COVER_POSES.length] };
