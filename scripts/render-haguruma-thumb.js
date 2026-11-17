@@ -1,4 +1,4 @@
-// Haguruma ブログのアイキャッチ（1200x630）を作る: node scripts/render-haguruma-thumb.js "タイトル" out.png [はぐるんの名前]
+// Haguruma ブログのアイキャッチ（1200x675。2026-11-17 新サイト haguruma-dental.jp の規格・ロゴは右上）を作る: node scripts/render-haguruma-thumb.js "タイトル" out.png [はぐるんの名前]
 // タイトルは \n で改行できる。キャラクター「はぐるん」入り（assets/haguru）。
 const fs = require("fs");
 const path = require("path");
@@ -44,13 +44,13 @@ function html(title, chara) {
   const size = Math.max(38, Math.min(66, Math.floor(620 / longest)));
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{--band:${B.bar};width:1200px;height:630px;background:linear-gradient(115deg,${B.g});color:#16382A;font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;position:relative;overflow:hidden}
+body{--band:${B.bar};width:1200px;height:675px;background:linear-gradient(115deg,${B.g});color:#16382A;font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;position:relative;overflow:hidden}
 .halo{position:absolute;width:620px;height:620px;border-radius:50%;right:-100px;top:10px;background:radial-gradient(circle,#FFFFFF 0%,rgba(255,255,255,.7) 50%,rgba(255,255,255,0) 72%)}
 .leaf{position:absolute;width:70px;height:34px;border-radius:0 100% 0 100%;background:${B.leaf};opacity:.55}
 .dot{position:absolute;border-radius:50%;background:${B.dot};opacity:.35}
 .chara{position:absolute;right:40px;bottom:-6px;height:520px;max-width:440px;object-fit:contain;object-position:right bottom;filter:drop-shadow(0 16px 18px rgba(30,90,55,.18))}
 .wrap{position:absolute;left:0;top:0;bottom:0;width:720px;padding:52px 0 50px 72px;display:flex;flex-direction:column}
-.logo{width:250px;align-self:flex-start}
+.logo{position:absolute;right:44px;top:36px;width:230px;z-index:3}
 .title{margin-top:auto;font-size:${size}px;line-height:1.38;font-weight:900;word-break:keep-all}
 .bar{margin-top:26px;width:100px;height:8px;border-radius:4px;background:${B.bar}}
 .foot{margin-top:auto;white-space:nowrap;font-size:19px;color:#4F6B5B;letter-spacing:.04em}
@@ -60,7 +60,7 @@ body{--band:${B.bar};width:1200px;height:630px;background:linear-gradient(115deg
 .L1 .halo{right:auto;left:-110px}
 .L1 .wrap{left:auto;right:0;padding-left:0;padding-right:70px;width:660px}
 .L1 .leaf{left:auto!important;right:-14px;transform:rotate(200deg)!important}
-.L2 .card{display:block;position:absolute;left:48px;top:46px;width:790px;height:538px;border-radius:40px;background:rgba(255,255,255,.86);box-shadow:0 14px 40px rgba(0,0,0,.06)}
+.L2 .card{display:block;position:absolute;left:48px;top:46px;width:790px;height:583px;border-radius:40px;background:rgba(255,255,255,.86);box-shadow:0 14px 40px rgba(0,0,0,.06)}
 .L2 .wrap{padding-top:92px;padding-bottom:84px;padding-left:104px;width:740px}
 .L2 .chara{right:6px;height:500px}
 .L2 .halo{opacity:.5}
@@ -77,7 +77,7 @@ body{--band:${B.bar};width:1200px;height:630px;background:linear-gradient(115deg
 <div class="dot" style="width:22px;height:22px;left:700px;top:80px"></div><div class="dot" style="width:12px;height:12px;left:740px;top:125px"></div>
 <div class="leaf" style="left:-14px;bottom:36px;transform:rotate(-22deg)"></div>
 <img class="chara" src="${HG.dataUri(HG.pick("thumb", title, 0, chara))}">
-<div class="wrap"><img class="logo" src="${LOGO}">
+<img class="logo" src="${LOGO}"><div class="wrap">
 <div class="title">${t}</div><div class="bar"></div>
 <div class="foot">審査制・実名制の歯科人材マッチング｜Haguruma</div></div></body></html>`;
 }
@@ -87,7 +87,7 @@ body{--band:${B.bar};width:1200px;height:630px;background:linear-gradient(115deg
   OUT = out;
   fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
   const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
-  const p = await b.newPage({ viewport: { width: 1200, height: 630 } });
+  const p = await b.newPage({ viewport: { width: 1200, height: 675 } });
   await p.setContent(html(title, chara), { waitUntil: "load" });
   await p.evaluate(() => document.fonts.ready);
   await p.screenshot({ path: out, type: "png" });
