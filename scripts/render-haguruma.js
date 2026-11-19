@@ -75,7 +75,7 @@ function posePlan(slides, seed) {
     used.add(p); return p;
   }
 }
-const SAY = { cover: ["気になる！", "知りたい！", "チェック！", "見てみて！", "なるほど？"], point: ["なるほど！", "ここ大事！", "いいね！", "安心だね！", "うれしい！", "知ってた？"], check: ["要チェック！"], end: ["登録してね！", "待ってるよ！"] };
+const SAY = { cover: ["気になる！", "知りたい！", "チェック！", "見てみて！", "なるほど？"], point: ["ここ大事！", "メモしてね", "いいね！", "安心だね！", "知ってた？", "やってみよう", "ポイントだよ", "覚えてね", "一歩ずつね", "大丈夫だよ", "なるほど！", "ナイス！"], check: ["要チェック！"], end: ["登録してね！", "待ってるよ！"] };
 
 /* ---------- テキスト ---------- */
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -193,7 +193,7 @@ function slideHTML(s, i, n, seed, T, pose) {
   const r = rng(seed + ":" + i);
   const type = s.type || "point";
   const img = p => fileUrl(path.join(HG, p + ".png"));
-  const say = s.say || (SAY[type] || SAY.point)[(hash(seed) + i) % (SAY[type] || SAY.point).length];
+  const say = s.say || (SAY[type] || SAY.point)[(hash(seed) + i * 5) % (SAY[type] || SAY.point).length];
   // 背景（毎回少しずつ違う）
   let bg = blob(-200 + r() * 120, -160 + r() * 80, 620, 520, "var(--wash)", .55, r()) + blob(700 + r() * 120, -120 + r() * 80, 520, 460, "var(--wash2)", .7, r())
     + blob(-180, 520 + r() * 200, 420, 420, "var(--wash2)", .55, r()) + blob(820, 560 + r() * 180, 380, 420, "var(--wash)", .5, r())

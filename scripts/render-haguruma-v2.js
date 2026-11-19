@@ -46,8 +46,16 @@ const POSES = ["iine", "nikkori", "ganbaru", "wink", "tere", "ureshii", "bikkuri
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const pose = (s, seed, i) => s.chara && HG.NAMES.includes(s.chara) ? s.chara
   : (s.type === "point" && HG.WORRY.test([s.heading, s.body].join(""))) ? "komari" : POSES[(hash(seed) + i * 3) % POSES.length];
-const SAY = { cover: "知ってた？", point: "なるほど！", check: "要チェック！", end: "登録してね！" };
-const say = s => esc(s.say || SAY[s.type] || SAY.point).replace(/\n/g, "<br>");
+// はぐるんのひと言：原稿に say が無いときは、投稿と枚ごとに違う言葉を選ぶ（2026-11-12 本人「毎回なるほどしか言ってない」）
+const SAY = {
+  cover: ["知ってた？", "気になる？", "チェック！", "いっしょに見よう", "読んでみて！", "ここだけの話"],
+  point: ["ここ大事！", "メモしてね", "いいね！", "安心だね", "知ってた？", "やってみよう", "ポイントだよ", "覚えておいてね", "一歩ずつね", "大丈夫だよ", "なるほど！", "ナイス！"],
+  check: ["要チェック！", "できてる？", "ひとつずつね"],
+  end: ["登録してね！", "待ってるよ！", "つなぐよ。", "応援してるよ！", "気軽にどうぞ！"],
+};
+const say = (s, seed, i) => { const pool = SAY[s.type] || SAY.point; return esc(s.say || pool[(hash(String(seed)) + (i || 0) * 5) % pool.length]).replace(/\n/g, "<br>"); };
+const REPLY = { cover: ["くわしく知りたい！", "気になる！", "教えて〜！", "読んでみる！"], end: ["登録してみる！", "やってみる！", "LINE見てみる！", "相談してみよう"] };
+const reply = (k, seed) => REPLY[k][hash(String(seed) + k) % REPLY[k].length];
 const ENDMSG = s => s.message || "~歯科の仕事を、\nもっと**自由**に。";
 
 /* =========================== chat：トーク画面風 =========================== */
@@ -62,27 +70,27 @@ function chatSlide(s, i, n, seed, T) {
   if (s.type === "cover") {
     const size = fit(s.title, 760, 112, 76);
     body = `<div class="day">${s.sub ? plain(s.sub).replace(/<br>/g, "") : "きょうのトピック"}</div>
-      ${L(say(s), "small")}
+      ${L(say(s, seed, i), "small")}
       <div class="msg l big">${icon}<div class="bb card"><div class="ttl" style="font-size:${size}px">${ttl(s.title)}</div></div></div>
       ${s.lead ? L(rich(s.lead), "small") : ""}
-      ${R("くわしく知りたい！")}`;
+      ${R(reply("cover", seed))}`;
     over = chara(p, "left:60px;bottom:140px;height:300px", "chara stamp");
   } else if (s.type === "end") {
     body = `<div class="day">まとめ</div>
       <div class="msg l big">${icon}<div class="bb card"><div class="ttl" style="font-size:${fit(ENDMSG(s), 760, 108, 80)}px">${ttl(ENDMSG(s))}</div></div></div>
       ${L(rich(s.lead || "新着の案件は公式LINEでお知らせしています。"), "small")}
-      <div class="stkrow"><div class="stk2">${say(s)}</div>${chara(p, "height:250px", "stamp")}</div>
+      <div class="stkrow"><div class="stk2">${say(s, seed, i)}</div>${chara(p, "height:250px", "stamp")}</div>
       <div class="linebtn"><span>LINE</span>公式LINEで新着をチェック →</div>`;
   } else if (s.type === "check") {
     body = `<div class="day">チェックリスト</div>
       ${L(`<div class="ttl" style="font-size:${fit(s.heading || s.title, 700, 76, 54)}px">${ttl(s.heading || s.title)}</div>`, "card")}
       <div class="msg l">${icon}<div class="bb list">${rows(s.body).map(t => `<div class="ck"><i></i><span>${inl(t)}</span></div>`).join("")}</div></div>`;
-    over = chara(p, "right:24px;bottom:150px;height:300px", "chara stamp") + `<div class="stk" style="right:290px;bottom:400px">${say(s)}</div>`;
+    over = chara(p, "right:24px;bottom:150px;height:300px", "chara stamp") + `<div class="stk" style="right:290px;bottom:400px">${say(s, seed, i)}</div>`;
   } else {
     body = `<div class="day">POINT ${s.no || i}</div>
       <div class="msg l big">${icon}<div class="bb card"><div class="ttl" style="font-size:${fit(s.heading, 740, 92, 60)}px">${ttl(s.heading)}</div></div></div>
       ${L(rows(s.body).map(t => inl(t)).join("<br>"))}
-      ${R(say(s), "say")}`;
+      ${R(say(s, seed, i), "say")}`;
     over = chara(p, "left:150px;bottom:140px;height:330px", "chara stamp");
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>${fontFace}
@@ -145,14 +153,14 @@ function magSlide(s, i, n, seed, T) {
     const ch = Math.max(360, Math.min(560, 1350 - 120 - tb - 30));
     over = `<div class="blk" style="right:-60px;bottom:110px;width:${Math.round(ch * 1.14)}px;height:${ch}px;transform:rotate(-8deg)"></div>`
       + chara(p, `right:40px;bottom:120px;height:${ch}px`, "chara cut")
-      + `<div class="quote" style="left:60px;bottom:200px">“${say(s)}”<small>— はぐるん</small></div>`;
+      + `<div class="quote" style="left:60px;bottom:200px">“${say(s, seed, i)}”<small>— はぐるん</small></div>`;
     body = `<div class="kick">${s.sub ? plain(s.sub).replace(/<br>/g, " ") : "FEATURE"}</div>
       <div class="ttl" style="margin-top:34px;font-size:${size}px">${ttl(s.title)}</div>
       ${s.lead ? `<div class="lead">${rich(s.lead)}</div>` : ""}`;
   } else if (s.type === "end") {
     over = `<div class="blk" style="left:-80px;bottom:120px;width:1240px;height:300px;transform:rotate(-4deg)"></div>`
       + chara(p, "right:50px;bottom:140px;height:440px", "chara cut")
-      + `<div class="quote" style="left:70px;bottom:250px;color:#fff">“${say(s)}”<small style="color:#fff">— はぐるん</small></div>`;
+      + `<div class="quote" style="left:70px;bottom:250px;color:#fff">“${say(s, seed, i)}”<small style="color:#fff">— はぐるん</small></div>`;
     body = `<div class="kick">EDITOR'S NOTE</div>
       <div class="ttl" style="margin-top:34px;font-size:${fit(ENDMSG(s), 960, 140, 96)}px">${ttl(ENDMSG(s))}</div>
       <div class="lead" style="width:560px">${rich(s.lead || "新着の案件は公式LINEでお知らせしています。登録・お問い合わせはプロフィールから。")}</div>
@@ -164,7 +172,7 @@ function magSlide(s, i, n, seed, T) {
       <ol class="ol">${rows(s.body).map(t => `<li>${inl(t)}</li>`).join("")}</ol>`;
   } else {
     over = `<div class="circ" style="right:60px;bottom:120px"></div>` + chara(p, "right:70px;bottom:120px;height:400px", "chara cut")
-      + `<div class="quote" style="right:470px;bottom:200px;text-align:right">“${say(s)}”<small>— はぐるん</small></div>`;
+      + `<div class="quote" style="right:470px;bottom:200px;text-align:right">“${say(s, seed, i)}”<small>— はぐるん</small></div>`;
     body = `<div class="bignum">${String(s.no || i).padStart(2, "0")}</div>
       <div class="ttl" style="margin-top:6px;font-size:${fit(s.heading, 960, 108, 68)}px">${ttl(s.heading)}</div>
       <div class="rule"></div>
@@ -221,21 +229,21 @@ function comicSlide(s, i, n, seed, T) {
         ${s.lead ? `<div class="cap" style="left:50px;bottom:40px;top:auto;max-width:880px;font-size:30px;line-height:1.5;background:#fff">${rich(s.lead)}</div>` : ""}</div>
       <div class="panel tone" style="left:40px;top:710px;width:1000px;height:560px;transform:rotate(1deg)">${SPEED(720, 300, "#111")}
         ${chara(p, "right:60px;bottom:-10px;height:520px")}
-        <div class="spk" style="left:40px;top:60px;width:480px;height:300px">${SPIKE(480, 300, "#fff")}<span>${say(s)}</span></div>
+        <div class="spk" style="left:40px;top:60px;width:480px;height:300px">${SPIKE(480, 300, "#fff")}<span>${say(s, seed, i)}</span></div>
 </div>`;
   } else if (s.type === "end") {
     body = `<div class="panel tone" style="left:40px;top:40px;width:1000px;height:1200px">${SPEED(760, 760, "#111")}
         <div class="cap" style="left:-6px;top:-6px">さいごに</div>
         <div class="ttl tbox" style="position:absolute;left:40px;right:40px;top:110px;font-size:${fit(ENDMSG(s), 700, 110, 76)}px">${ttl(ENDMSG(s))}</div>
         ${chara(p, "right:40px;bottom:170px;height:420px")}
-        <div class="bal" style="left:80px;top:640px">${say(s)}</div>
+        <div class="bal" style="left:80px;top:640px">${say(s, seed, i)}</div>
         <div class="linebtn">公式LINEで新着をチェック →</div></div>`;
   } else if (s.type === "check") {
     body = `<div class="panel" style="left:40px;top:40px;width:1000px;height:1200px">
         <div class="cap" style="left:-6px;top:-6px">チェック！</div>
         <div class="ttl" style="position:absolute;left:50px;right:50px;top:120px;font-size:${fit(s.heading || s.title, 900, 110, 70)}px">${ttl(s.heading || s.title)}</div>
         <div class="nar" style="left:50px;top:420px;width:620px">${rows(s.body).map(t => `<div class="ck">☑ ${inl(t)}</div>`).join("")}</div>
-        ${chara(p, "right:30px;bottom:90px;height:420px")}<div class="bal" style="right:60px;top:430px">${say(s)}</div></div>`;
+        ${chara(p, "right:30px;bottom:90px;height:420px")}<div class="bal" style="right:60px;top:430px">${say(s, seed, i)}</div></div>`;
   } else {
     body = `<div class="panel" style="left:40px;top:40px;width:1000px;height:470px;transform:rotate(-1deg)">
         <div class="cap" style="left:-6px;top:-6px">POINT ${s.no || i}</div>
@@ -244,7 +252,7 @@ function comicSlide(s, i, n, seed, T) {
         <div class="nar" style="left:34px;right:34px;top:40px">${rows(s.body).map(t => `<p>${inl(t)}</p>`).join("")}</div></div>
       <div class="panel tone" style="left:630px;top:540px;width:410px;height:730px;transform:rotate(-.6deg)">${SPEED(220, 520, "#111")}
         ${chara(p, "left:-30px;bottom:-10px;height:440px")}
-        <div class="bal" style="left:30px;top:40px">${say(s)}</div></div>`;
+        <div class="bal" style="left:30px;top:40px">${say(s, seed, i)}</div></div>`;
   }
   return `<!doctype html><html><head><meta charset="utf-8"><style>${fontFace}
 *{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;overflow-wrap:anywhere}
